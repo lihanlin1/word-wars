@@ -1,0 +1,144 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998ac896b9ec74d4db1091cb62ff275a, type: 3}
+  m_Name: Level5
+  m_EditorClassIdentifier: 
+  levelId: 5
+  title: "\u8349\u539F5 \xB7 \u56F4\u730E"
+  startInk: 200
+  startLives: 5
+  prepSeconds: 18
+  homeLampRadius: 0
+  eruptionMin: 0
+  eruptionMax: 0
+  chapter: {fileID: 0}
+  poolChars:
+  - "\u5200"
+  - "\u77DB"
+  - "\u5F13"
+  - "\u58A8"
+  - "\u94F2"
+  - "\u68CD"
+  - "\u621F"
+  - "\u5F29"
+  rewardCards: []
+  waves:
+  - groups:
+    - charId: "\u91CE\u4EBA"
+      count: 1
+      interval: 6
+      face: -1
+    - charId: "\u72FC"
+      count: 8
+      interval: 1
+      face: -1
+    startAfterPrev: 18
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u91CE\u4EBA"
+      count: 2
+      interval: 5
+      face: -1
+    - charId: "\u718A"
+      count: 3
+      interval: 3
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u725B"
+      count: 3
+      interval: 2.5
+      face: -1
+    - charId: "\u9E70"
+      count: 5
+      interval: 1.2
+      face: -1
+    - charId: "\u9E1F"
+      count: 6
+      interval: 1
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u91CE\u4EBA"
+      count: 2
+      interval: 4.5
+      face: -1
+    - charId: "\u864E"
+      count: 1
+      interval: 4
+      face: -1
+    - charId: "\u725B"
+      count: 2
+      interval: 2.5
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u91CE\u4EBA"
+      count: 2
+      interval: 4
+      face: -1
+    - charId: "\u718A"
+      count: 4
+      interval: 2.5
+      face: -1
+    - charId: "\u72FC"
+      count: 8
+      interval: 0.9
+      face: -1
+    startAfterPrev: 22
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u725B"
+      count: 4
+      interval: 2
+      face: -1
+    - charId: "\u864E"
+      count: 1
+      interval: 3.5
+      face: -1
+    - charId: "\u9E1F"
+      count: 6
+      interval: 1
+      face: -1
+    startAfterPrev: 22
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u91CE\u4EBA"
+      count: 2
+      interval: 5
+      face: -1
+    - charId: "\u914B\u957F"
+      count: 1
+      interval: 5
+      face: -1
+    startAfterPrev: 25
+    tide: -1
+    spawnPort: 0
+  clearTitle: 
+  clearDesc: 
+  diaryPages:
+  - "\u65E5\u8BB05"
+  - "\u8FC7\u4E86\u8FD9\u4E48\u4E45\uFF0C\u5904\u7406\u8FD9\u4E9B\u70E6\u4EBA\u7684\u4E1C\u897F\u6211\u5DF2\u7ECF\u5F97\u5FC3\u5E94\u624B\u4E86\u3002"
+  - "\u6211\u672C\u4EE5\u4E3A\u6211\u53EF\u4EE5\u653E\u5FC3\u5728\u8FD9\u91CC\u7761\u4E00\u89C9\u7684\u65F6\u5019...
+    ..."
+  - "\u4E00\u4E2A\u5E9E\u7136\u5927\u7269\u51FA\u73B0\u5728\u6211\u7684\u89C6\u91CE\u4E2D\uFF0C\u8FD9\u4E48\u5927\u7684\u5B57\u6211\u8FD8\u662F\u5934\u4E00\u6B21\u89C1\uFF01"
+  voidRatio: 0
+  faceSwitch: 0

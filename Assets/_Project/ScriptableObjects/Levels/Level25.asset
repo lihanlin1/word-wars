@@ -1,0 +1,153 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998ac896b9ec74d4db1091cb62ff275a, type: 3}
+  m_Name: Level25
+  m_EditorClassIdentifier: 
+  levelId: 25
+  title: "\u8BE1\u5F025 \xB7 \u50A9\u9762"
+  startInk: 60
+  startLives: 5
+  prepSeconds: 20
+  homeLampRadius: 0
+  eruptionMin: 0
+  eruptionMax: 0
+  chapter: {fileID: 11400000, guid: 287be36eb8f2a5448bd1f33b625ed668, type: 2}
+  poolChars:
+  - "\u5200"
+  - "\u77DB"
+  - "\u5F13"
+  - "\u58A8"
+  - "\u94F2"
+  - "\u68CD"
+  - "\u621F"
+  - "\u5F29"
+  - "\u6C34"
+  - "\u6E14"
+  - "\u51B0"
+  - "\u706F"
+  - "\u6CD5"
+  - "\u76C6"
+  - "\u706B"
+  - "\u70AE"
+  - "\u70EC"
+  - "\u955C"
+  - "\u96F7"
+  - "\u5E61"
+  - "\u715E"
+  rewardCards: []
+  waves:
+  - groups:
+    - charId: "\u7EB8"
+      count: 6
+      interval: 1
+      face: -1
+    - charId: "\u5F71"
+      count: 6
+      interval: 1
+      face: 1
+    startAfterPrev: 22
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u5F71"
+      count: 8
+      interval: 0.9
+      face: 1
+    - charId: "\u9B47"
+      count: 2
+      interval: 0.9
+      face: -1
+    startAfterPrev: 25
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u7EB8"
+      count: 6
+      interval: 0.9
+      face: -1
+    - charId: "\u5F71"
+      count: 6
+      interval: 0.9
+      face: 1
+    - charId: "\u5080"
+      count: 1
+      interval: 0.9
+      face: -1
+    startAfterPrev: 25
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u7EB8"
+      count: 6
+      interval: 0.9
+      face: -1
+    - charId: "\u5F71"
+      count: 6
+      interval: 0.9
+      face: 1
+    - charId: "\u9B47"
+      count: 2
+      interval: 0.9
+      face: -1
+    startAfterPrev: 25
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u7EB8"
+      count: 6
+      interval: 0.9
+      face: -1
+    - charId: "\u5F71"
+      count: 6
+      interval: 0.9
+      face: 1
+    - charId: "\u50A9\u9762"
+      count: 1
+      interval: 1
+      face: 0
+    startAfterPrev: 28
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u5F71"
+      count: 8
+      interval: 0.9
+      face: 1
+    - charId: "\u5080"
+      count: 1
+      interval: 0.9
+      face: -1
+    - charId: "\u9B47"
+      count: 2
+      interval: 0.9
+      face: -1
+    startAfterPrev: 25
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u7EB8"
+      count: 8
+      interval: 0.8
+      face: -1
+    - charId: "\u5F71"
+      count: 8
+      interval: 0.8
+      face: 1
+    - charId: "\u9B47"
+      count: 3
+      interval: 0.8
+      face: -1
+    startAfterPrev: 30
+    tide: -1
+    spawnPort: 0
+  voidRatio: 0.45
+  faceSwitch: 1

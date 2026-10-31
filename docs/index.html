@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Word Wars</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width=1200 height=675 tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-webgl-logo"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Word Wars</div>
+      </div>
+    </div>
+    <!-- M1 竖屏提示层（任务单 10 / ADR-042）：双门控 = orientation:portrait 且 body.is-touch（触屏检测）。
+         竖屏不可玩是硬伤，提示层全屏盖黑；PC 无触摸 → 永不出现（PC 零回归铁律）。 -->
+    <div id="rotate-overlay">
+      <div class="phone-icon"></div>
+      <div class="rotate-text">请横屏游玩</div>
+    </div>
+    <!-- M2.1 触屏专属全屏钮（ADR-043）：仅 is-touch 显示（style.css 控制）——移动端 Default
+         模板 footer 被藏 = 全屏入口缺失，补一个角落大钮（触屏可点性 ≥44px）。 -->
+    <div id="touch-fullscreen-button"></div>
+    <script>
+
+      var container = document.querySelector("#unity-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingBar = document.querySelector("#unity-loading-bar");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+      var touchFullscreenButton = document.querySelector("#touch-fullscreen-button");
+      var warningBanner = document.querySelector("#unity-warning");
+
+      // M1（ADR-042）双门控之一：触屏能力检测——命中才给 body 加 is-touch。
+      // 配合 style.css 的 @media (orientation: portrait) 双门控显示提示层。
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.body.classList.add('is-touch');
+      }
+
+      // Shows a temporary message banner/ribbon for a few seconds, or
+      // a permanent error message on top of the canvas if type=='error'.
+      // If type=='warning', a yellow highlight color is used.
+      // Modify or remove this function to customize the visually presented
+      // way that non-critical warnings and error messages are presented to the
+      // user.
+      function unityShowBanner(msg, type) {
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      // S1 屏幕适配（2026-10-20 用户定案：只保 16:9）：
+      // 全屏 = 全屏「整个页面」，不是全屏 canvas——canvas 被浏览器拉满时，
+      // 16:10 / 4:3 这类窄于 16:9 的屏会把画面左右裁掉；全屏页面后画布仍按 16:9
+      // 居中并留宣纸边（尺寸由 CSS 决定）。iOS 不支持元素全屏 → 静默无效，
+      // 与 ADR-043 已接受的降级一致。
+      function togglePageFullscreen() {
+        var el = document.documentElement;
+        var d = document;
+        var fsEl = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement;
+        if (fsEl) {
+          if (d.exitFullscreen) d.exitFullscreen();
+          else if (d.webkitExitFullscreen) d.webkitExitFullscreen();
+          else if (d.mozCancelFullScreen) d.mozCancelFullScreen();
+        } else if (el.requestFullscreen) {
+          el.requestFullscreen().catch(function () {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        } else if (el.mozRequestFullScreen) {
+          el.mozRequestFullScreen();
+        }
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/docs.loader.js";
+      var config = {
+        dataUrl: buildUrl + "/docs.data.unityweb",
+        frameworkUrl: buildUrl + "/docs.framework.js.unityweb",
+        codeUrl: buildUrl + "/docs.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Independent",
+        productName: "Word Wars",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
+
+      // By default, Unity keeps WebGL canvas render target size matched with
+      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+      // Set this to false if you want to decouple this synchronization from
+      // happening inside the engine, and you would instead like to size up
+      // the canvas DOM size and WebGL render target sizes yourself.
+      // config.matchWebGLToCanvasSize = false;
+
+      // If you would like all file writes inside Unity Application.persistentDataPath
+      // directory to automatically persist so that the contents are remembered when
+      // the user revisits the site the next time, uncomment the following line:
+      // config.autoSyncPersistentDataPath = true;
+      // This autosyncing is currently not the default behavior to avoid regressing
+      // existing user projects that might rely on the earlier manual
+      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
+      // expected to change.
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas:
+
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        // M2.2（ADR-043）：补 maximum-scale=1（iOS Safari 忽略 user-scalable=no——双击缩放
+        // 兜底靠它 + style.css 的 touch-action:none 双保险）。
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        container.className = "unity-mobile";
+        canvas.className = "unity-mobile";
+
+        // To lower canvas resolution on mobile devices to gain some
+        // performance, uncomment the following line:
+        // config.devicePixelRatio = 1;
+
+
+      } else {
+        // Desktop style（S1 2026-10-20）：不再写死 1200×675 像素窗口——
+        // 画布尺寸交给 CSS（恒 16:9、随浏览器窗口等比缩放居中，见 TemplateData/style.css）。
+        // 大窗口自动放大、小窗口自动缩小，画面永不裁切/拉伸。
+      }
+
+      loadingBar.style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          progressBarFull.style.width = 100 * progress + "%";
+              }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                // S1（2026-10-20）：两处全屏入口统一走「全屏页面」（见上方 togglePageFullscreen）。
+                fullscreenButton.onclick = togglePageFullscreen;
+                // M2.1（ADR-043）触屏钮同款：显式按钮非自动全屏（浏览器用户手势铁律）。
+                // iOS Safari 不支持元素全屏（ADR-042 技术事实）→ 点击静默 = 已接受降级。
+                touchFullscreenButton.onclick = togglePageFullscreen;
+              }).catch((message) => {
+                alert(message);
+              });
+            };
+
+      document.body.appendChild(script);
+
+    </script>
+  </body>
+</html>

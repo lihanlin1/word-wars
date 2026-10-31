@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dcb818712d13c360a2c8b3f6ce050c2, type: 3}
+  m_Name: Chapter1
+  m_EditorClassIdentifier: 
+  chapterId: 1
+  title: "\u7B2C\u4E00\u7AE0 \xB7 \u8349\u539F"
+  codexDesc: "\u8349\u539F \xB7 \u6559\u5B66\u56FE\u3002\n\u5355\u7EBF\u8DEF\uFF1A\u654C\u4EBA\u4ECE\u5DE6\u4E0B\u51FA\u53D1\uFF0C\u6CBF\u86C7\u5F62\u8DEF\u8D70\u5230\u53F3\u4E0B\u300C\u5BB6\u300D\u3002\n12 \u5757\u5854\u9632\u683C + 6 \u5757\u53EF\u57A6\u8352\u5730\uFF1A\u70B9\u94F2\u5F00\u57A6\u8352\u5730\u53D8\u5854\u9632\u683C\u3002\n\u65E0\u7279\u6B8A\u673A\u5236\uFF0C\u7528\u6765\u719F\u6089\u653E\u5854\u3001\u5408\u6210\u3001\u5356\u51FA\u3001\u62BD\u5361\u3002"
+  cells:
+  - x: -8
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -6
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -3
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 1
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 3
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -2
+    y: 1
+    state: 0
+    elevation: 4
+  - x: 1
+    y: 1
+    state: 0
+    elevation: 4
+  - x: -2
+    y: -1
+    state: 0
+    elevation: 4
+  - x: 2
+    y: -1
+    state: 0
+    elevation: 4
+  - x: 0
+    y: -2
+    state: 0
+    elevation: 4
+  - x: 6
+    y: -2
+    state: 0
+    elevation: 4
+  - x: 8
+    y: -2
+    state: 0
+    elevation: 4
+  - x: -2
+    y: 2
+    state: 1
+    elevation: 4
+  - x: -4
+    y: 1
+    state: 1
+    elevation: 4
+  - x: 7
+    y: 1
+    state: 1
+    elevation: 4
+  - x: -6
+    y: -2
+    state: 1
+    elevation: 4
+  - x: 1
+    y: -2
+    state: 1
+    elevation: 4
+  - x: 4
+    y: -2
+    state: 1
+    elevation: 4
+  landRoute:
+  - {x: -9, y: 3}
+  - {x: 5, y: 3}
+  - {x: 5, y: 0}
+  - {x: -5, y: 0}
+  - {x: -5, y: -3}
+  - {x: 9, y: -3}
+  waterRoute: []
+  fogEnabled: 0
+  bidirectional: 0
+  volcanoEnabled: 0
+  volcanoCenter: {x: 0, y: 0}
+  faceEnabled: 0
+  voidRoute: []
+  bgm: {fileID: 8300000, guid: a1f756f494d80424895c8485a6b1696f, type: 3}
+  bossBgm: {fileID: 8300000, guid: a1f756f494d80424895c8485a6b1696f, type: 3}

@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b4dabd9d41a5c74b8a353a21c098bca, type: 3}
+  m_Name: GameParams
+  m_EditorClassIdentifier: 
+  handSize: 5
+  waveClearBonus: 15
+  sellRate: 0.5
+  inkCapUpgradeEveryLevels: 0
+  redShovelBaseCost: 50
+  redShovelCostStep: 50
+  redShovelUnlockLevel: 3
+  farmSeconds: 15
+  farmSpeedupCost: 25
+  inkPulseSeconds: 5
+  submergeSeconds: 20
+  bossChargeSeconds: 5
+  bossSummonPauseSeconds: 10
+  bossEbbSeconds: 60
+  bossPhase2WaterMult: 1.5
+  maxTowerLevel: 5
+  damageGrowth: 1.8
+  inkGrowth: 2
+  arrowLength: 0.16
+  arrowWidth: 0.05
+  toastFontSize: 7
+  fogEnemyDim: 0.3
+  fogEnemyAlpha: 0.55
+  lightVulnerableMult: 1.5
+  lightHinderedMult: 0.7
+  nocturnalFogMult: 1.3
+  mageStunChance: 0.2
+  perchSecondsPerLevel: 3
+  owlPhase2SpeedMult: 1.25
+  owlFlickerSeconds: 5
+  owlFlickerAlpha: 0.6
+  fogStealthColor: {r: 0.75, g: 0.76, b: 0.82, a: 1}
+  fogStealthAlpha: 0.35
+  eruptionDelaySeconds: 4
+  eruptionFlashSeconds: 5
+  lavaBurstDamage: 15
+  lavaMarkDps: 2
+  lavaMarkSeconds: 10
+  burnDps: 3
+  burnSeconds: 3
+  ashDamageMult: 2
+  burnVulnerableMult: 2
+  trampleCircleColor: {r: 0.78, g: 0.2, b: 0.16, a: 1}
+  trampleDiscAlpha: 0.1
+  trampleRimAlpha: 0.65
+  trampleChargeColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  leiResonanceSeconds: 3
+  leiResonanceAlpha: 0.34
+  leiResonanceColor: {r: 0.88, g: 0.32, b: 0.12, a: 1}
+  leiRainMin: 6
+  leiRainMax: 8
+  leiSummonCount: 6
+  leiSummonHpMult: 0.35
+  leiSummonSpeedMult: 1.3
+  leiSummonChar: "\u706B\u8725"
+  leiSummonGapSeconds: 0.25
+  leiPhase2SpeedMult: 1.25
+  leiPhase2TrampleRadius: 2.5
+  faceInactiveSpeedMult: 0.5
+  faceSwitchCooldown: 8
+  faceSwitchCost: 5
+  faceSwitchFlashSeconds: 0.2
+  soulsPerPayout: 10
+  voidFaceTint: {r: 0.62, g: 0.78, b: 0.92, a: 1}
+  voidFaceTintAlpha: 0.12
+  voidFaceTintFadeSeconds: 0.35
+  voidPulseInterval: 10
+  voidPulseAlpha: 0.32
+  voidPulseFadeSeconds: 0.5
+  voidPulseColor: {r: 0.72, g: 0.2, b: 0.16, a: 1}
+  nuoFaceCycleSeconds: 18
+  nuoFaceWarnSeconds: 3
+  nuoGraceSeconds: 1.5
+  nuoRedSmashInterval: 6
+  nuoGreenSpeedMult: 1.25
+  nuoGreenDamageTakenMult: 1.5
+  nuoSummonPerWave: 6
+  nuoSummonChar: "\u5C0F\u9B3C"
+  nuoGoldWarnSeconds: 2
+  nuoGoldSealSeconds: 3
+  nuoGoldCdSeconds: 6
+  shenDanceInterval: 10
+  shenDanceSeconds: 2.5
+  shenDanceDamageMult: 1.5
+  shenSmashInterval: 7
+  shenSealInterval: 7
+  shenSummonPerWave: 3
+  shenBlackoutSeconds: 3
+  homeMaxLevel: 5
+  homeInkPulseSeconds: 5
+  homeInkBase: 1
+  hardEnemyHpMult: 2
+  tier6Color: {r: 0.72, g: 0.2, b: 0.16, a: 1}
+  tier6MaxLevel: 6

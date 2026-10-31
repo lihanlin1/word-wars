@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998ac896b9ec74d4db1091cb62ff275a, type: 3}
+  m_Name: Level3
+  m_EditorClassIdentifier: 
+  levelId: 3
+  title: "\u8349\u539F3 \xB7 \u57A6\u62D3"
+  startInk: 90
+  startLives: 5
+  prepSeconds: 18
+  homeLampRadius: 0
+  eruptionMin: 0
+  eruptionMax: 0
+  chapter: {fileID: 0}
+  poolChars:
+  - "\u5200"
+  - "\u77DB"
+  - "\u5F13"
+  - "\u58A8"
+  - "\u94F2"
+  rewardCards:
+  - "\u68CD"
+  - "\u621F"
+  waves:
+  - groups:
+    - charId: "\u9E1F"
+      count: 4
+      interval: 2
+      face: -1
+    - charId: "\u866B"
+      count: 6
+      interval: 1.2
+      face: -1
+    startAfterPrev: 18
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9E70"
+      count: 3
+      interval: 1.8
+      face: -1
+    - charId: "\u72FC"
+      count: 6
+      interval: 1.2
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9E1F"
+      count: 6
+      interval: 1.5
+      face: -1
+    - charId: "\u86DB"
+      count: 4
+      interval: 1.8
+      face: -1
+    - charId: "\u718A"
+      count: 2
+      interval: 3.5
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9E70"
+      count: 4
+      interval: 1.2
+      face: -1
+    - charId: "\u9E1F"
+      count: 6
+      interval: 1
+      face: -1
+    startAfterPrev: 20
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u718A"
+      count: 3
+      interval: 3
+      face: -1
+    - charId: "\u72FC"
+      count: 8
+      interval: 0.9
+      face: -1
+    - charId: "\u9E1F"
+      count: 4
+      interval: 1.5
+      face: -1
+    startAfterPrev: 22
+    tide: -1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9E70"
+      count: 5
+      interval: 1
+      face: -1
+    - charId: "\u864E"
+      count: 1
+      interval: 4.5
+      face: -1
+    - charId: "\u86DB"
+      count: 4
+      interval: 1.5
+      face: -1
+    startAfterPrev: 22
+    tide: -1
+    spawnPort: 0
+  clearTitle: 
+  clearDesc: 
+  diaryPages:
+  - "\u65E5\u8BB03"
+  - "\u6211\u9700\u8981\u5927\u91CF\u7684\u58A8\uFF0C\u4E3A\u6B64\uFF0C\u6211\u751A\u81F3\u4E0D\u60DC\u5C06\u654C\u4EBA\u201C\u5206\u89E3\u201D\uFF0C\u5B83\u4EEC\u7684\u8EAB\u4F53\u88AB\u4F60\u6363\u788E\uFF0C\u7814\u6210\u58A8\u3002"
+  - "\u6211\u7684\u5929\u554A\uFF01\u6211\u4E3A\u4EC0\u4E48\u8981\u540C\u60C5\u654C\u4EBA\uFF0C\u4ED6\u4EEC\u53EF\u662F\u60F3\u8981\u6740\u4E86\u6211\u554A\uFF01"
+  voidRatio: 0
+  faceSwitch: 0

@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dcb818712d13c360a2c8b3f6ce050c2, type: 3}
+  m_Name: Chapter2
+  m_EditorClassIdentifier: 
+  chapterId: 2
+  title: "\u7B2C\u4E8C\u7AE0 \xB7 \u6C34\u6CFD"
+  codexDesc: "\u6C34\u6CFD \xB7 \u6F6E\u6C50\u56FE\u3002\n\u53CC\u7EBF\u8DEF\uFF1A\u9646\u8DEF + \u6C34\u8DEF\uFF08\u9C7C\u867E\u8D70\u6C34\u8DEF\uFF0C\u5230\u6C47\u5408\u70B9\u8F6C\u4E3B\u8DEF\uFF09\u3002\n\u6F6E\u4F4D\u5728 \u5E73\u6F6E / \u6DA8\u6F6E / \u5927\u6DA8 \u4E4B\u95F4\u5207\u6362\uFF1A\u6D77\u62D4\u4F4E\u4E8E\u6C34\u7EBF\u7684\u683C\u5B50\u88AB\u6DF9\uFF0C\u5854\u6C89\u9ED8\u3002\n\u6C34\u683C\u53EA\u80FD\u653E\u6C34\u7CFB\u5854\uFF08\u6C34 / \u51B0 / \u6E14\uFF09\u3002\n\u6DA8\u6F6E\u524D\u4F1A\u63D0\u793A\u64A4\u79BB\uFF1A\u79FB\u52A8\u514D\u8D39\u3001\u5356\u51FA\u6298\u534A\u3001\u4E0D\u52A8\u5219\u968F\u683C\u6C89\u6CA1\u3002"
+  cells:
+  - x: -5
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -3
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -1
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 1
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 3
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 8
+    y: 2
+    state: 0
+    elevation: 4
+  - x: 5
+    y: 1
+    state: 0
+    elevation: 4
+  - x: 7
+    y: 1
+    state: 0
+    elevation: 4
+  - x: 5
+    y: 0
+    state: 0
+    elevation: 4
+  - x: 7
+    y: 0
+    state: 0
+    elevation: 4
+  - x: -7
+    y: 2
+    state: 1
+    elevation: 3
+  - x: 6
+    y: 2
+    state: 1
+    elevation: 4
+  - x: -3
+    y: -1
+    state: 1
+    elevation: 3
+  - x: -1
+    y: -1
+    state: 1
+    elevation: 3
+  - x: -8
+    y: 0
+    state: 0
+    elevation: 1
+  - x: -6
+    y: 0
+    state: 0
+    elevation: 1
+  - x: -5
+    y: 0
+    state: 0
+    elevation: 1
+  - x: -3
+    y: 0
+    state: 0
+    elevation: 1
+  - x: -8
+    y: 1
+    state: 0
+    elevation: 2
+  - x: -6
+    y: 1
+    state: 0
+    elevation: 2
+  - x: -4
+    y: 1
+    state: 0
+    elevation: 2
+  - x: -2
+    y: 1
+    state: 0
+    elevation: 2
+  - x: -8
+    y: -2
+    state: 3
+    elevation: 4
+  - x: -6
+    y: -2
+    state: 3
+    elevation: 4
+  - x: -4
+    y: -2
+    state: 3
+    elevation: 4
+  - x: -2
+    y: -2
+    state: 3
+    elevation: 4
+  - x: 0
+    y: -2
+    state: 3
+    elevation: 4
+  - x: 3
+    y: -2
+    state: 3
+    elevation: 4
+  landRoute:
+  - {x: -9, y: 3}
+  - {x: 4, y: 3}
+  - {x: 4, y: -1}
+  - {x: 9, y: -1}
+  waterRoute:
+  - {x: -9, y: -3}
+  - {x: 4, y: -3}
+  - {x: 4, y: -1}
+  - {x: 9, y: -1}
+  fogEnabled: 0
+  bidirectional: 0
+  volcanoEnabled: 0
+  volcanoCenter: {x: 0, y: 0}
+  faceEnabled: 0
+  voidRoute: []
+  bgm: {fileID: 8300000, guid: 2633436a82c13f94abf4ad0246eb547b, type: 3}
+  bossBgm: {fileID: 8300000, guid: 2633436a82c13f94abf4ad0246eb547b, type: 3}

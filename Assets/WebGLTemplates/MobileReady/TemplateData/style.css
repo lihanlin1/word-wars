@@ -1,0 +1,90 @@
+/* ===== S1 屏幕适配（2026-10-20 用户定案：只保 16:9）=====
+   画布恒定 16:9，随窗口**等比**缩放并居中；多余部分留宣纸色 #F7F2E7
+   （= 相机 clearColor / 棋盘底纹同色，看起来是纸边，不是黑边）。
+   收益：任何窗口比例都不裁画面、不拉伸——16:10 笔记本只多出上下纸边，
+   4:3 平板同理；PC 不再写死 1200×675，大窗口自动放大。
+   竖屏手机仍由 #rotate-overlay 拦截（ADR-042 不变）。 */
+html, body { padding: 0; margin: 0; height: 100%; background: #F7F2E7; overflow: hidden }
+#unity-container { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) }
+#unity-container.unity-desktop { left: 50%; top: 50%; transform: translate(-50%, -50%) }
+#unity-container.unity-mobile { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: auto; height: auto }
+#unity-canvas {
+  display: block;
+  background: {{{ BACKGROUND_COLOR }}};
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+}
+/* 移动端浏览器地址栏会吃掉 100vh → 有 svh（最小视口高）时改用它，避免画布底边被裁 */
+@supports (height: 100svh) {
+  #unity-canvas {
+    width: min(100vw, calc(100svh * 16 / 9));
+    height: min(100svh, calc(100vw * 9 / 16));
+  }
+}
+#unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none }
+#unity-logo { width: 154px; height: 130px; background: url('unity-logo-{{{ SPLASH_SCREEN_STYLE.toLowerCase() }}}.png') no-repeat center }
+#unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; margin-left: 6.5px; background: url('progress-bar-empty-{{{ SPLASH_SCREEN_STYLE.toLowerCase() }}}.png') no-repeat center }
+#unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('progress-bar-full-{{{ SPLASH_SCREEN_STYLE.toLowerCase() }}}.png') no-repeat center }
+/* S1（2026-10-20）：footer 一律隐藏——画布现在占满 16:9 框，footer 若留在文档流里
+   会把整块容器顶高 38px（画布被推出屏幕上缘 19px、HUD 顶行可能被切）。
+   桌面全屏入口不需要（用户口径：PC 不全屏）；移动端全屏钮见 #touch-fullscreen-button。
+   想临时打开把下面这行改成 position: relative 即可。 */
+#unity-footer { display: none }
+.unity-mobile #unity-footer { display: none }
+#unity-webgl-logo { float:left; width: 204px; height: 38px; background: url('webgl-logo.png') no-repeat center }
+#unity-build-title { float: right; margin-right: 10px; line-height: 38px; font-family: arial; font-size: 18px }
+#unity-fullscreen-button { cursor:pointer; float: right; width: 38px; height: 38px; background: url('fullscreen-button.png') no-repeat center }
+#unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+
+/* ===== M1 竖屏提示层（任务单 10 / ADR-042）=====
+   双门控：@media (orientation: portrait) 且 body.is-touch（index.html JS 检测加类）
+   —— PC 无触摸类，任意窗口比例永不出现（PC 零回归铁律）；触屏竖屏全屏黑底提示。 */
+#rotate-overlay {
+  display: none; /* 双门控命中才 flex，默认藏 */
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0; /* 保守 inset 写法（老 iOS Safari 兼容） */
+  z-index: 9999; /* 盖过 unity 容器/加载条——竖屏加载中也显示 */
+  background: #14110d; /* 深墨底 */
+  color: #e8e0d0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-family: "KaiTi", "STKaiti", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+@media (orientation: portrait) {
+  body.is-touch #rotate-overlay { display: flex; }
+}
+/* 纯 CSS 手机图标：竖长圆角矩形，动画往左转 90°——「转横」的视觉指令 */
+#rotate-overlay .phone-icon {
+  width: 48px; height: 88px;
+  border: 4px solid #e8e0d0;
+  border-radius: 10px;
+  animation: rotate-phone 1.6s ease-in-out infinite;
+}
+@keyframes rotate-phone {
+  0%, 20% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
+#rotate-overlay .rotate-text { font-size: 22px; letter-spacing: 4px; }
+
+/* ===== M2.1 触屏专属全屏钮（ADR-043）=====
+   仅 is-touch 显示（PC 零回归）；复用 TemplateData/fullscreen-button.png 图标不新增资源。
+   半透明圆钮角落 fixed，提示层（9999）之下、游戏之上。iOS 点了静默无效 = ADR-042 已接受降级。 */
+#touch-fullscreen-button {
+  display: none; /* 仅触屏显示 */
+  position: fixed;
+  right: 14px; bottom: 14px;
+  width: 56px; height: 56px; /* 触屏可点性 ≥44px */
+  background: rgba(20, 17, 13, 0.55) url('fullscreen-button.png') no-repeat center / 28px 28px;
+  border-radius: 28px;
+  z-index: 9998;
+  cursor: pointer;
+}
+body.is-touch #touch-fullscreen-button { display: block; }
+
+/* ===== M2.2 视口禁缩放（ADR-043）=====
+   canvas touch-action: none——防双击/捏合缩放吃掉快速点击（触屏塔防经典坑）；
+   仅 .unity-mobile canvas（PC 鼠标不受影响）。viewport meta 的 maximum-scale=1
+   见 index.html 移动分支（iOS Safari 忽略 user-scalable=no，双重兜底）。 */
+.unity-mobile #unity-canvas { touch-action: none; }

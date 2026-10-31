@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998ac896b9ec74d4db1091cb62ff275a, type: 3}
+  m_Name: Level6
+  m_EditorClassIdentifier: 
+  levelId: 6
+  title: "\u6C34\u6CFD1 \xB7 \u521D\u6F6E"
+  startInk: 100
+  startLives: 5
+  prepSeconds: 20
+  homeLampRadius: 0
+  eruptionMin: 0
+  eruptionMax: 0
+  chapter: {fileID: 11400000, guid: 1e1d82e967dce214ab82ed2a2a5e9152, type: 2}
+  poolChars:
+  - "\u5200"
+  - "\u77DB"
+  - "\u5F13"
+  - "\u58A8"
+  - "\u94F2"
+  - "\u68CD"
+  - "\u621F"
+  - "\u5F29"
+  rewardCards:
+  - "\u6C34"
+  waves:
+  - groups:
+    - charId: "\u866B"
+      count: 6
+      interval: 1.2
+      face: -1
+    - charId: "\u72FC"
+      count: 2
+      interval: 1.2
+      face: -1
+    startAfterPrev: 30
+    tide: 1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9C7C"
+      count: 4
+      interval: 1
+      face: -1
+    - charId: "\u867E"
+      count: 3
+      interval: 1
+      face: -1
+    startAfterPrev: 25
+    tide: 2
+    spawnPort: 0
+  - groups:
+    - charId: "\u867E"
+      count: 6
+      interval: 1
+      face: -1
+    - charId: "\u866B"
+      count: 4
+      interval: 1
+      face: -1
+    startAfterPrev: 25
+    tide: 1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9C7C"
+      count: 5
+      interval: 1
+      face: -1
+    - charId: "\u867E"
+      count: 4
+      interval: 1
+      face: -1
+    - charId: "\u72FC"
+      count: 3
+      interval: 1
+      face: -1
+    startAfterPrev: 25
+    tide: 2
+    spawnPort: 0
+  clearTitle: 
+  clearDesc: 
+  diaryPages:
+  - "\u65E5\u8BB06"
+  - "\u7EB8\u9762\u88AB\u6C34\u6D78\u900F\u4E86\u3002\u8E29\u4E0A\u53BB\uFF0C\u58A8\u8FF9\u6655\u5F00\uFF0C\u811A\u4E0B\u53D1\u8F6F\u3002"
+  - "\u6211\u5C1D\u8BD5\u5728\u6C34\u4E2D\u5199\u5B57\uFF1A\u5947\u602A\uFF1F\u8FD9\u5B57\u8FD9\u4E48\u4E0D\u52A8\u4E86\uFF1F"
+  - "\u6C34\u4E0B\u9690\u7EA6\u770B\u5230\u6709\u4EC0\u4E48\u4E1C\u897F\u5728\u52A8\uFF1F\u4E0D\u597D\uFF0C\u5FEB\u8DD1\uFF01\u6C34\u91CC\u6709\u4E1C\u897F\u671D\u6211\u8DD1\u8FC7\u6765\u4E86\uFF01"
+  voidRatio: 0
+  faceSwitch: 0

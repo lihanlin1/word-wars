@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 998ac896b9ec74d4db1091cb62ff275a, type: 3}
+  m_Name: Level7
+  m_EditorClassIdentifier: 
+  levelId: 7
+  title: "\u6C34\u6CFD2 \xB7 \u7F13\u6D9B"
+  startInk: 60
+  startLives: 5
+  prepSeconds: 20
+  homeLampRadius: 0
+  eruptionMin: 0
+  eruptionMax: 0
+  chapter: {fileID: 11400000, guid: 1e1d82e967dce214ab82ed2a2a5e9152, type: 2}
+  poolChars:
+  - "\u5200"
+  - "\u77DB"
+  - "\u5F13"
+  - "\u58A8"
+  - "\u94F2"
+  - "\u68CD"
+  - "\u621F"
+  - "\u5F29"
+  - "\u6C34"
+  rewardCards:
+  - "\u6E14"
+  waves:
+  - groups:
+    - charId: "\u866B"
+      count: 8
+      interval: 1
+      face: -1
+    - charId: "\u9C7C"
+      count: 3
+      interval: 1
+      face: -1
+    startAfterPrev: 25
+    tide: 1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9F9F"
+      count: 2
+      interval: 1.5
+      face: -1
+    - charId: "\u867E"
+      count: 4
+      interval: 1.5
+      face: -1
+    startAfterPrev: 25
+    tide: 2
+    spawnPort: 0
+  - groups:
+    - charId: "\u9F9F"
+      count: 3
+      interval: 1.2
+      face: -1
+    - charId: "\u9C7C"
+      count: 6
+      interval: 1.2
+      face: -1
+    startAfterPrev: 25
+    tide: 0
+    spawnPort: 0
+  - groups:
+    - charId: "\u72FC"
+      count: 6
+      interval: 1.2
+      face: -1
+    - charId: "\u718A"
+      count: 2
+      interval: 1.2
+      face: -1
+    - charId: "\u9C7C"
+      count: 4
+      interval: 1.2
+      face: -1
+    startAfterPrev: 25
+    tide: 1
+    spawnPort: 0
+  - groups:
+    - charId: "\u9F9F"
+      count: 3
+      interval: 1
+      face: -1
+    - charId: "\u9C7C"
+      count: 5
+      interval: 1
+      face: -1
+    - charId: "\u866B"
+      count: 6
+      interval: 1
+      face: -1
+    startAfterPrev: 25
+    tide: 2
+    spawnPort: 0
+  clearTitle: 
+  clearDesc: 
+  diaryPages:
+  - "\u65E5\u8BB07"
+  - "\u4E3A\u4EC0\u4E48\u8FD9\u4E2A\u5B57\u5728\u6C34\u4E2D\u6CA1\u6709\u6D88\u6563\uFF1F\u53CD\u800C\u66F4\u5F3A\u4E86\uFF1F"
+  - "\u4E8B\u60C5\u53D8\u5F97\u6709\u8DA3\u8D77\u6765\u4E86... ..."
+  voidRatio: 0
+  faceSwitch: 0

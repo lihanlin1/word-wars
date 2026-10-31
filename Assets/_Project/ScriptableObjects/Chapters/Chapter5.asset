@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dcb818712d13c360a2c8b3f6ce050c2, type: 3}
+  m_Name: Chapter5
+  m_EditorClassIdentifier: 
+  chapterId: 5
+  title: "\u7B2C\u4E94\u7AE0 \xB7 \u8BE1\u5F02"
+  codexDesc: "\u8BE1\u5F02 \xB7 \u53CC\u9762\u56FE\u3002\n\u6218\u573A\u5206\u300C\u5B9E\u9762 / \u865A\u9762\u300D\u4E24\u5C42\uFF0C\u540C\u4E00\u65F6\u95F4\u53EA\u6709\u4E00\u9762\u53EF\u6253\u3002\n\u6362\u9762\u6309\u94AE / Q \u952E\u5207\u6362\u9762\uFF08\u6709\u51B7\u5374\u3001\u8017\u58A8\uFF09\uFF1B\u7ED3\u7B97\u540E\u53EF\u514D\u8D39\u5207\u9762\u6574\u7406\u5854\u9632\u3002\n\u72EC\u6709\u5854\uFF1A\u955C\uFF08\u53CC\u9762\u8986\u76D6\uFF09\u3001\u96F7\uFF08\u94FE\u7535\uFF09\u3001\u5E61\uFF08\u6536\u9B42\u4EA7\u58A8\uFF09\u3001\u715E\uFF08\u865A\u9762\u589E\u4F24\uFF09\u3002\n\u50A9\u9762\u4F1A\u5468\u671F\u6027\u6362\u8138\uFF08\u8D64\u5288\u5854 / \u9752\u52A0\u901F / \u91D1\u5C01\u5370\uFF09\uFF0C\u50A9\u795E\u964D\u4E34\u540E\u4E09\u9762\u968F\u884C\u3002"
+  cells:
+  - x: -6
+    y: 2
+    state: 0
+    elevation: 4
+  - x: -6
+    y: -2
+    state: 0
+    elevation: 4
+  - x: 1
+    y: 1
+    state: 0
+    elevation: 4
+  - x: 1
+    y: -1
+    state: 0
+    elevation: 4
+  - x: 7
+    y: 1
+    state: 0
+    elevation: 4
+  - x: 7
+    y: -1
+    state: 0
+    elevation: 4
+  - x: -3
+    y: 2
+    state: 1
+    elevation: 4
+  - x: -3
+    y: -2
+    state: 1
+    elevation: 4
+  - x: 3
+    y: 2
+    state: 1
+    elevation: 4
+  - x: 3
+    y: -2
+    state: 1
+    elevation: 4
+  - x: 5
+    y: 2
+    state: 1
+    elevation: 4
+  - x: 5
+    y: -2
+    state: 1
+    elevation: 4
+  - x: -8
+    y: 0
+    state: 0
+    elevation: 4
+  - x: -7
+    y: 0
+    state: 0
+    elevation: 4
+  landRoute:
+  - {x: -9, y: 3}
+  - {x: -4, y: 3}
+  - {x: -4, y: 0}
+  - {x: -1, y: 0}
+  - {x: -1, y: 3}
+  - {x: 8, y: 3}
+  - {x: 8, y: -3}
+  - {x: 4, y: -3}
+  - {x: 4, y: 0}
+  - {x: 9, y: 0}
+  waterRoute: []
+  fogEnabled: 0
+  bidirectional: 0
+  volcanoEnabled: 0
+  volcanoCenter: {x: 0, y: 0}
+  faceEnabled: 1
+  voidRoute:
+  - {x: -9, y: -3}
+  - {x: -4, y: -3}
+  - {x: -4, y: 0}
+  - {x: -1, y: 0}
+  - {x: -1, y: -3}
+  - {x: 8, y: -3}
+  - {x: 8, y: 3}
+  - {x: 4, y: 3}
+  - {x: 4, y: 0}
+  - {x: 9, y: 0}
+  bgm: {fileID: 8300000, guid: 7fe9ff557a1e90d44835a35a81c09caa, type: 3}
+  bossBgm: {fileID: 8300000, guid: dd04c6c39c2f131498f79e6df4f9544c, type: 3}

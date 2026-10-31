@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44cae8847fdded943a59899ac7ce8967, type: 3}
+  m_Name: UIPanelConfig
+  m_EditorClassIdentifier: 
+  deckCardSize: 1.15
+  deckSlotY: 2.6
+  deckSlotSpacing: 1.55
+  deckBagColumns: 6
+  deckBagRowY: 0.6
+  deckBagSpacingX: 1.45
+  deckBagSpacingY: 1.7
+  deckTitleY: 4.5
+  deckTitleFontSize: 10
+  deckZoneDeckY: 3.55
+  deckZoneBagY: 1.55
+  deckZoneFontSize: 6.5
+  deckCharFontSize: 8
+  deckPriceFontSize: 3.5
+  deckSumY: -2.55
+  deckSumFontSize: 7.93
+  deckConfirmW: 4.8
+  deckConfirmH: 1.6
+  deckConfirmY: -3.59
+  deckConfirmFontSize: 12
+  handBarY: -4.55
+  handCardSize: 1.15
+  handCardSpacing: 1.7
+  handBarShiftX: -0.7
+  handCardFontSize: 10
+  handDrawX: 4.55
+  handSellX: 6.05
+  handNextX: 8.1
+  handButtonSize: 1.5
+  handNextW: 2.4
+  handNextH: 1.4
+  handNextFontSize: 7.5
