@@ -1,8 +1,10 @@
-# Word Wars / 字塔防
+# Word Wars / 墨守（字塔防）
 
 **2D 汉字塔防 + 卡牌合成** · Unity 2022.3.62f2c1 · 独立开发
 
 [▶ 在线试玩](https://lihanlin1.github.io/word-wars/)（部署后生效）
+
+> 首次加载约 47MB，建议桌面 Chrome / Edge；移动端可打开，但操作体验以桌面为准。
 
 ![Word Wars gameplay](media/wordwars-gameplay.png)
 
