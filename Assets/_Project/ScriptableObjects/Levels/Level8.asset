@@ -33,7 +33,7 @@ MonoBehaviour:
   - "\u6C34"
   - "\u6E14"
   rewardCards:
-  - "\u51B0"
+  - "\u6E14"
   waves:
   - groups:
     - charId: "\u9C7C"

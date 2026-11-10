@@ -42,7 +42,7 @@ MonoBehaviour:
   - "\u955C"
   - "\u96F7"
   rewardCards:
-  - "\u5E61"
+  - "\u96F7"
   waves:
   - groups:
     - charId: "\u7EB8"
