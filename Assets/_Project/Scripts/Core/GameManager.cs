@@ -81,6 +81,8 @@ namespace WordWars
         private ChapterConfig activeChapter;                 // F4.3（ADR-031）：当前关实际章图（关卡引用优先，空走场景引用）
         [SerializeField] private UIPanelConfig panelConfig;  // 界面布局参数（ADR-024：Inspector 调面板/手牌条；空 = 内置缺省）
         [SerializeField] private SoundConfig soundConfig;    // 战斗音效槽位（ADR-028：用户自备音频；空 = 全静音）
+        [SerializeField] private ShopConfig shopConfig;      // v4：商店价格（初始墨「+」就地花金币，同商店价）
+        [SerializeField] private TalentConfig talentConfig;  // v4：天赋表（困难章配置面板）
 
         private static readonly Color BlueInk = HexUtil.ToColor("#2B4C7E");
         private static readonly Color Vermilion = HexUtil.ToColor("#B83A2E");
@@ -125,8 +127,7 @@ namespace WordWars
         private const float TowerDragThresholdPx = 12f;
         private const float SellDropRadius = 1.6f; // 卖出区命中半径（世界单位；按钮外围 1.5 倍放宽）
 
-        // —— F4（docs/14，ADR-064）常驻回滚按钮 + 二次确认 ——
-        private GameObject retryBtnRoot;   // 常驻回滚按钮（左下角）
+        // —— F4（docs/14，ADR-064）二次确认（左下角常驻「重开」已并进暂停菜单，2026-11-06）——
         private GameObject confirmRoot;    // 回滚二次确认遮罩根
 
         // —— 家（用户 2026-10-23）：道路尽头可升级产墨（章内累积、章界清零）——
@@ -153,6 +154,19 @@ namespace WordWars
         private DeckPanel deckPanel;                      // 构筑面板（L3 起）
         private ClearPanel clearPanel;                    // P5 通关结算画面（有奖励时）
         private DiaryPanel diaryPanel;                    // P6 日记画面（章首关）
+        private TalentPanel talentPanel;                  // v4：困难章天赋配置面板
+
+        // —— v4 天赋按钮（核弹 / 时停 / 升阶秘籍×2）——
+        private GameObject nukeBtn, timeBtn, tomeBtn, tomePoorBtn;
+        private SpriteRenderer nukeBg, timeBg, tomeBg, tomePoorBg;
+        private TextMeshPro nukeLabel, timeLabel, tomeLabel, tomePoorLabel;
+        private bool timeStopUsedThisLevel;
+        private int tomeMode;             // 0=未选 1=正版 2=劣版
+        private float tomeCd1, tomeCd2;
+        private int nukesUsedThisLevel;   // 本关已用核弹数（重玩本关时返还）
+
+        // —— 奖励：本次进关新增的卡（困难模式判断是否弹「获得」） ——
+        private readonly List<string> entryAddedRewards = new List<string>();
 
         // —— P5（用户 2026-10-26）：通关奖励改到「点下一关」后逐张展示 ——
         private List<string> pendingRewardCards;          // 胜利帧记下的奖励卡（首次通关才有）
@@ -251,6 +265,25 @@ namespace WordWars
         }
 
         /// <summary>
+        /// 正交相机按「设计宽度 19.2 格」兜底：窄屏放大 orthographicSize（画面等比缩小），
+        /// 保证棋盘与四角按钮横向不被切；16:9 及以上不满足条件、完全不动。
+        /// 注意：这会连带露出上下更多空间（底部手牌条会离屏幕下沿远一点），是有意的取舍——
+        /// 宁可四周多留白，也不要把「菜单 / 重开 / 下一波」切掉。
+        /// </summary>
+        private void FitCameraWidth()
+        {
+            var cam = Camera.main;
+            if (cam == null || !cam.orthographic) return;
+            const float DesignHalfW = 9.6f; // 19.2 / 2
+            float need = DesignHalfW / Mathf.Max(0.1f, cam.aspect);
+            if (need <= cam.orthographicSize + 0.001f) return;
+
+            cam.orthographicSize = need;
+            Debug.Log("[Game] 窄屏适配：orthographicSize 5.4 → " + need.ToString("0.###") +
+                      "（aspect " + cam.aspect.ToString("0.###") + "）");
+        }
+
+        /// <summary>
         /// 倍速是**全局静态状态**（Time.timeScale）：本对象销毁（退出 Play / 换场景）必须复位，
         /// 否则下一次进来会以 2 倍起步、而按钮文字还显示 ×1（状态错位）。
         /// </summary>
@@ -286,6 +319,12 @@ namespace WordWars
                 enabled = false;
                 return;
             }
+
+            // 屏幕适配（用户 2026-11-06：PC + 手机横屏都要）：整套战斗 UI 是按「19.2 格宽 × 10.8 高」
+            // 摆的（相机 ortho 5.4 + 16:9）。换到 16:10 窗口 / 平板 4:3，横向只剩 17.3 / 14.4 格，
+            // 右上的「菜单 / ×1」、左下的「重开」、右下的「下一波」和棋盘两侧会被切掉。
+            // 唯一兜底点：把正交尺寸放大到「至少看得到 19.2 格宽」，只缩不放，16:9 及以上零变化。
+            FitCameraWidth();
 
             model = new BattleModel
             {
@@ -368,14 +407,20 @@ namespace WordWars
             CreateHandBar();
             CreateDeckPanel();
             CreateStoryPanels();
+            BuildTalentButtons();
             CreateTutorialController();
             CreateBlackVeil(); // F5.2 枭黑幕（全场黑转场演出件；常隐 alpha 0）
             CreateRedVeil();   // F6.2 麟共振全场红闪（演出件；常隐 alpha 0）
 
-            // 操作提示为规则附属文案（v3.0-D：R=回滚、N=带塔推进/切关）——运行时直写，场景旧值不参与
+            // 操作提示条（用户 2026-11-06）：**整行去掉**——顶栏三行太挤，而且桌面键位提示
+            //（空格/D/R/N）在手机上纯属噪音。文案保留在这里，要恢复时把 SetActive 改成 true
+            // 并把位置下移（原 405 会和波次栏同一行撞上）。
             if (hud != null && hud.hintText != null)
+            {
                 hud.hintText.text =
                     "点手牌→点空地放塔 · 点塔拿起→点目标(移动/合并) · 抽=一口价补满 · 铲点荒地开垦 · 盆点灰格除灰(塔防格复绿) · 空格下一波 D抽 R重玩 N推进";
+                hud.hintText.gameObject.SetActive(false);
+            }
 
             // docs/16 F3.2（安全区）：运行时整体重挂 Canvas 内容会打乱 HUD（实测墨 UI 跑位），
             // 暂时**不自动挂载**，等做场景级安全区容器再启用。类保留（SafeAreaFitter.cs）。
@@ -416,15 +461,21 @@ namespace WordWars
             RequestEnterLevel(startIdx, startField);
         }
 
+        /// <summary>
+        /// HUD 所在的屏幕空间 Canvas。世界坐标模态面板（天赋配置 / 构筑）打开时要把它整体收起来——
+        /// ScreenSpaceOverlay 永远渲染在世界精灵之上，靠 z 压不住。
+        /// </summary>
+        private Canvas HudCanvas => hud != null ? hud.GetComponentInParent<Canvas>() : null;
+
         /// <summary>构筑面板（运行时自建，世界坐标；镜像 HandBar 模式；布局走 UIPanelConfig）。</summary>
         private void CreateDeckPanel()
         {
             var go = new GameObject("DeckPanel", typeof(DeckPanel));
             deckPanel = go.GetComponent<DeckPanel>();
-            deckPanel.Init(font, whiteSprite, panelConfig);
+            deckPanel.Init(font, whiteSprite, panelConfig, HudCanvas);
             // F1.3（ADR-053）：选卡界面左上角「初始墨 N +」——读存档、点击即 +1 步并立即写档。
             // 正式版把 UpgradeInitialInk 换成激励视频即可（UI / 存档结构不动）。
-            deckPanel.BindInk(() => CurrentInitialInk, () => InkSteps, UpgradeInitialInk);
+            deckPanel.BindInk(() => CurrentInitialInk, () => InkSteps, UpgradeInitialInk, () => InkStepPrice);
         }
 
         /// <summary>
@@ -435,11 +486,15 @@ namespace WordWars
         {
             var clearGo = new GameObject("ClearPanel", typeof(ClearPanel));
             clearPanel = clearGo.GetComponent<ClearPanel>();
-            clearPanel.Init(font, whiteSprite);
+            clearPanel.Init(font, whiteSprite, HudCanvas);
 
             var diaryGo = new GameObject("DiaryPanel", typeof(DiaryPanel));
             diaryPanel = diaryGo.GetComponent<DiaryPanel>();
-            diaryPanel.Init(font, whiteSprite);
+            diaryPanel.Init(font, whiteSprite, HudCanvas);
+
+            var talentGo = new GameObject("TalentPanel", typeof(TalentPanel));
+            talentPanel = talentGo.GetComponent<TalentPanel>();
+            talentPanel.Init(font, whiteSprite, talentConfig, HudCanvas);
         }
 
         /// <summary>
@@ -447,17 +502,26 @@ namespace WordWars
         /// 面板打开期间 GameManager 暂停（Tick 不跑）——本方法自成闭环，不依赖时间推进。
         /// 不扣任何资源、不做门槛判断、不接 SDK（原型期零 SDK 口径）。
         /// </summary>
+        /// <summary>
+        /// v4（用户 2026-11-04，ADR-085）：初始墨「+」改为**花金币**买一步（与商店同价，就地买不跳场景）。
+        /// 金币不足/已封顶 → 返回 false（面板原地不动）。
+        /// </summary>
         private bool UpgradeInitialInk()
         {
-            if (save == null) save = new SaveData();
+            if (save == null) return false;
+            int steps = InkSteps;
+            if (steps >= SaveSystem.InkCapMaxSteps) return false;
+            int price = InkStepPrice;
+            if (save.gold < price) return false;
+            save.gold -= price;
             if (save.playerMeta == null) save.playerMeta = new PlayerMetaData();
-            if (save.playerMeta.inkCapSteps >= SaveSystem.InkCapMaxSteps) return false;
-            save.playerMeta.inkCapSteps++;
-            WriteSave();
-            Debug.Log("[F1.3] 初始墨升级：步数 " + save.playerMeta.inkCapSteps + "/" +
-                SaveSystem.InkCapMaxSteps + " → 下关起手 " + CurrentInitialInk + " 墨");
+            save.playerMeta.inkCapSteps = steps + 1;
+            SaveSystem.Write(save);
             return true;
         }
+
+        /// <summary>下一步初始墨的金币价（商店同源公式）。</summary>
+        private int InkStepPrice => shopConfig != null ? shopConfig.InkStepPrice(InkSteps) : 0;
 
         /// <summary>拿起塔时的攻击范围指示器（运行时自建，场景零引用）。</summary>
         private void CreateRangeIndicator()
@@ -660,7 +724,7 @@ namespace WordWars
             var panel = new GameObject("MenuPanel", typeof(SpriteRenderer), typeof(BoxCollider2D));
             panel.transform.SetParent(veilGo.transform, false);
             panel.transform.localPosition = new Vector3(0f, 0f, -0.1f);
-            panel.transform.localScale = new Vector3(6.2f, 7.6f, 1f);
+            panel.transform.localScale = new Vector3(6.6f, 8.4f, 1f);
             var pbg = panel.GetComponent<SpriteRenderer>();
             pbg.sprite = whiteSprite;
             pbg.color = new Color(0.93f, 0.89f, 0.80f, 0.98f);
@@ -669,43 +733,54 @@ namespace WordWars
             // 标题「菜单」
             var titleGo = new GameObject("MenuTitle", typeof(RectTransform), typeof(MeshRenderer), typeof(MeshFilter));
             titleGo.transform.SetParent(veilGo.transform, false);
-            titleGo.transform.localPosition = new Vector3(0f, 3.0f, -0.2f);
+            titleGo.transform.localPosition = new Vector3(0f, 3.45f, -0.2f);
             var title = titleGo.AddComponent<TextMeshPro>();
             title.font = font;
-            title.fontSize = 12f;
+            title.fontSize = 11f;
             title.alignment = TextAlignmentOptions.Center;
             title.color = HexUtil.ToColor("#26231F");
-            title.text = "菜单";
-            titleGo.GetComponent<RectTransform>().sizeDelta = new Vector2(5f, 1.4f);
+            title.text = "菜 单";
+            titleGo.GetComponent<RectTransform>().sizeDelta = new Vector2(5f, 1.2f);
 
-            // 继续 / 回滚本关 / 退出到主界面（占位灰态）——按钮加宽到 4.2（4-5 字不换行）
-            MakePanelButton(veilGo.transform, "MenuResume", new Vector3(0f, 2.0f, -0.2f), "继续", HexUtil.ToColor("#26231F"), false, ResumeGame, 4.2f, 8f);
-            MakePanelButton(veilGo.transform, "MenuRetry", new Vector3(0f, 1.1f, -0.2f), "重玩本关", HexUtil.ToColor("#26231F"), false, ConfirmRetry, 4.2f, 8f);
-            MakePanelButton(veilGo.transform, "MenuExit", new Vector3(0f, 0.2f, -0.2f), "退出到主界面", HexUtil.ToColor("#26231F"), false, ExitToMainMenu, 4.2f, 8f);
+            // —— 主操作：继续 / 重开本关 / 退出 ——
+            // 2026-11-06：左下角常驻「重开」并进这里（重开本关）；按钮统一 4.8×0.82、中心间距 1.05，
+            // 旧版 4.2×0.9 只隔 0.9——纸底彼此贴死像一根柱子，而且「退出到主界面」六个字
+            // 比 4.2 的纸底宽、两头直接溢到框外。
+            MakePanelButton(veilGo.transform, "MenuResume", new Vector3(0f, 2.35f, -0.2f), "继续",
+                HexUtil.ToColor("#26231F"), false, ResumeGame, 4.8f, 7.2f, 0.82f);
+            MakePanelButton(veilGo.transform, "MenuRetry", new Vector3(0f, 1.30f, -0.2f), "重开本关",
+                HexUtil.ToColor("#26231F"), false, ConfirmRetry, 4.8f, 7.2f, 0.82f);
+            MakePanelButton(veilGo.transform, "MenuExit", new Vector3(0f, 0.25f, -0.2f), "退出到主界面",
+                HexUtil.ToColor("#26231F"), false, ExitToMainMenu, 4.8f, 6.6f, 0.82f);
 
-            // —— 测试区（仅测试用：随时可跳关/删档）——
-            var testGo = new GameObject("MenuTestLabel", typeof(RectTransform), typeof(MeshRenderer), typeof(MeshFilter));
-            testGo.transform.SetParent(veilGo.transform, false);
-            testGo.transform.localPosition = new Vector3(0f, -0.55f, -0.2f);
-            var testLabel = testGo.AddComponent<TextMeshPro>();
-            testLabel.font = font;
-            testLabel.fontSize = 6f;
-            testLabel.alignment = TextAlignmentOptions.Center;
-            testLabel.color = new Color(0.45f, 0.43f, 0.40f, 0.9f);
-            testLabel.text = "—— 测试 ——";
-            testGo.GetComponent<RectTransform>().sizeDelta = new Vector2(4f, 0.8f);
+            // 细分隔线：主操作 / 跳关与危险操作 分开（原来靠一行「—— 测试 ——」小字，
+            // 位置正好压在「退出到主界面」下面，两个都看不清）
+            var rule = new GameObject("MenuRule", typeof(SpriteRenderer));
+            rule.transform.SetParent(veilGo.transform, false);
+            rule.transform.localPosition = new Vector3(0f, -0.40f, -0.2f);
+            rule.transform.localScale = new Vector3(4.8f, 0.012f, 1f);
+            var rbg = rule.GetComponent<SpriteRenderer>();
+            rbg.sprite = whiteSprite;
+            rbg.color = new Color(0.15f, 0.13f, 0.11f, 0.20f);
 
-            MakePanelButton(veilGo.transform, "MenuPrev", new Vector3(-1.25f, -1.4f, -0.2f), "上一关", HexUtil.ToColor("#26231F"), false, PrevLevel, 2.4f, 7.5f);
-            MakePanelButton(veilGo.transform, "MenuNext", new Vector3(1.25f, -1.4f, -0.2f), "下一关", HexUtil.ToColor("#26231F"), false, AdvanceLevel, 2.4f, 7.5f);
-            MakePanelButton(veilGo.transform, "MenuWipe", new Vector3(0f, -2.4f, -0.2f), "删档重开", Vermilion, false, DeleteSaveAndRestart, 4.2f, 8f);
+            MakePanelButton(veilGo.transform, "MenuPrev", new Vector3(-1.20f, -1.05f, -0.2f), "上一关",
+                HexUtil.ToColor("#26231F"), false, PrevLevel, 2.2f, 6.0f, 0.75f);
+            MakePanelButton(veilGo.transform, "MenuNext", new Vector3(1.20f, -1.05f, -0.2f), "下一关",
+                HexUtil.ToColor("#26231F"), false, AdvanceLevel, 2.2f, 6.0f, 0.75f);
+            MakePanelButton(veilGo.transform, "MenuWipe", new Vector3(0f, -2.05f, -0.2f), "删档重开",
+                Vermilion, false, DeleteSaveAndRestart, 4.8f, 6.4f, 0.82f);
+            MakePanelButton(veilGo.transform, "MenuTalentReset", new Vector3(0f, -3.05f, -0.2f), "重置本章天赋",
+                Vermilion, false, ResetChapterTalents, 4.8f, 6.4f, 0.82f);
 
             pauseVeilRoot = veilGo;
             veilGo.SetActive(false); // 建好即藏（显隐 = 暂停态）
 
             // —— 右上角波次栏让位（用户 2026-10-12）：y -50 → -120，顶栏给暂停钮留位 ——
-
+            //     2026-11-06：x -349 → -409——右对齐框的右边缘原本正好落在画布边界上（960），
+            //     「备战 16s / 第 N 波」会贴边被切，往左挪 60 留出安全边距。
+            // 提示条已隐藏（见 Build 里的说明），这里的位置调整一并撤掉
             if (hud != null && hud.waveText != null)
-                hud.waveText.rectTransform.anchoredPosition = new Vector2(-349f, -120f);
+                hud.waveText.rectTransform.anchoredPosition = new Vector2(-409f, -120f);
         }
 
         /// <summary>
@@ -1047,6 +1122,240 @@ namespace WordWars
             }
         }
 
+        // ============ v4 天赋按钮（核弹 / 咋瓦鲁多 / 升阶秘籍） ============
+
+        private void BuildTalentButtons()
+        {
+            nukeBtn = MakeTalentBtn("核弹", new Vector3(-8.55f, 0.95f, -1.6f), UseNuke, out nukeBg, out nukeLabel);
+            timeBtn = MakeTalentBtn("时停", new Vector3(-8.55f, 0.05f, -1.6f), UseTimeStop, out timeBg, out timeLabel);
+            tomeBtn = MakeTalentBtn("秘籍", new Vector3(-8.55f, -0.85f, -1.6f), () => StartTome(1), out tomeBg, out tomeLabel);
+            tomePoorBtn = MakeTalentBtn("劣籍", new Vector3(-8.55f, -1.75f, -1.6f), () => StartTome(2), out tomePoorBg, out tomePoorLabel);
+        }
+
+        private GameObject MakeTalentBtn(string text, Vector3 pos, Action onClick,
+            out SpriteRenderer bg, out TextMeshPro label)
+        {
+            var holder = new GameObject("TalentBtn_" + text);
+            holder.transform.SetParent(transform, false);
+            holder.transform.position = pos;
+
+            var body = new GameObject("Body", typeof(SpriteRenderer), typeof(BoxCollider2D));
+            body.transform.SetParent(holder.transform, false);
+            body.transform.localScale = new Vector3(1.55f, 0.72f, 1f);
+            bg = body.GetComponent<SpriteRenderer>();
+            bg.sprite = whiteSprite;
+            bg.color = new Color(0.93f, 0.89f, 0.80f, 0.95f);
+            body.GetComponent<BoxCollider2D>().size = Vector2.one * 1.02f;
+            body.AddComponent<WorldButton>().Init(onClick, null);
+
+            var go = new GameObject("Label", typeof(RectTransform), typeof(MeshRenderer), typeof(MeshFilter));
+            go.transform.SetParent(holder.transform, false);
+            go.transform.localPosition = new Vector3(0f, 0.02f, -0.15f);
+            label = go.AddComponent<TextMeshPro>();
+            label.font = font;
+            label.fontSize = 4.2f;
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableWordWrapping = false;
+            label.color = HexUtil.ToColor("#26231F");
+            label.text = text;
+            go.GetComponent<RectTransform>().sizeDelta = new Vector2(2.4f, 1f);
+
+            holder.SetActive(false);
+            return holder;
+        }
+
+        /// <summary>每帧刷新天赋按钮（显示条件 = 本章天赋已激活；核弹剩余/秘籍 CD）。</summary>
+        private void UpdateTalentButtons()
+        {
+            if (model == null) return;
+            float dt = Time.deltaTime;
+            if (tomeCd1 > 0f) tomeCd1 = Mathf.Max(0f, tomeCd1 - dt);
+            if (tomeCd2 > 0f) tomeCd2 = Mathf.Max(0f, tomeCd2 - dt);
+            if (model.TimeStopRemaining > 0)
+                model.TimeStopRemaining = System.Math.Max(0.0, model.TimeStopRemaining - dt);
+
+            bool nuke = IsTalentActive(TalentIds.Nuke);
+            bool stop = IsTalentActive(TalentIds.TimeStop);
+            bool tome = IsTalentActive(TalentIds.Upgrade);
+            bool tomePoor = IsTalentActive(TalentIds.UpgradePoor);
+
+            if (nukeBtn != null) nukeBtn.SetActive(nuke);
+            if (timeBtn != null) timeBtn.SetActive(stop);
+            if (tomeBtn != null) tomeBtn.SetActive(tome);
+            if (tomePoorBtn != null) tomePoorBtn.SetActive(tomePoor);
+            if (!nuke && !stop && !tome && !tomePoor) return;
+
+            if (nuke)
+            {
+                int left = save != null && save.hardChapterState != null ? save.hardChapterState.nukeLeft : 0;
+                nukeLabel.text = "核弹 " + Mathf.Max(0, left);
+                nukeBg.color = left > 0 ? new Color(0.93f, 0.86f, 0.76f, 0.95f) : new Color(0.62f, 0.58f, 0.52f, 0.9f);
+            }
+            if (stop)
+            {
+                timeLabel.text = timeStopUsedThisLevel ? "时停 已用" : "时停";
+                timeBg.color = timeStopUsedThisLevel ? new Color(0.62f, 0.58f, 0.52f, 0.9f) : new Color(0.93f, 0.89f, 0.80f, 0.95f);
+            }
+            if (tome)
+            {
+                tomeLabel.text = tomeCd1 > 0f ? "秘籍 " + Mathf.CeilToInt(tomeCd1) : (tomeMode == 1 ? "秘籍·选塔" : "秘籍");
+                tomeBg.color = tomeCd1 > 0f ? new Color(0.62f, 0.58f, 0.52f, 0.9f) : new Color(0.93f, 0.86f, 0.76f, 0.95f);
+            }
+            if (tomePoor)
+            {
+                tomePoorLabel.text = tomeCd2 > 0f ? "劣籍 " + Mathf.CeilToInt(tomeCd2) : (tomeMode == 2 ? "劣籍·选塔" : "劣籍");
+                tomePoorBg.color = tomeCd2 > 0f ? new Color(0.62f, 0.58f, 0.52f, 0.9f) : new Color(0.93f, 0.86f, 0.76f, 0.95f);
+            }
+        }
+
+        private void UseNuke()
+        {
+            if (model == null || won || model.Failed || !IsTalentActive(TalentIds.Nuke)) return;
+            var hs = save != null ? save.hardChapterState : null;
+            if (hs == null || hs.nukeLeft <= 0) return;
+            hs.nukeLeft--;
+            nukesUsedThisLevel++;
+            model.DamageAll(gameParams != null ? gameParams.nukeDamage : 10000);
+            NukeFriendlyFire(); // 用户 2026-11-05：核弹有友伤——场上塔防全毁（手牌/备用槽保留）
+            sfx?.PlayNuke();
+            StartCoroutine(ShakeCamera(0.35f, 0.28f));
+            SpawnFloat("核 弹 ！", new Vector3(0f, 2.2f, 0f), Vermilion, 20f);
+            SaveSystem.Write(save);
+            RefreshHud();
+        }
+
+        /// <summary>
+        /// 核弹友伤（用户 2026-11-05）：场上塔防全毁；**手牌不受影响**、**备用塔防槽（临时格上的塔）保留**。
+        /// 走既有 DestroyTowerCore（销毁视图/镜像/高亮/铲状态统一收口）。
+        /// </summary>
+        private void NukeFriendlyFire()
+        {
+            if (model == null || grid == null) return;
+            var doomed = new List<TowerState>();
+            foreach (var t in model.Towers)
+            {
+                if (t == null) continue;
+                int tx = Mathf.RoundToInt(t.position.x);
+                int ty = Mathf.RoundToInt(t.position.y);
+                if (tx == TempCellX && ty == TempCellY) continue; // 备用塔防槽保留
+                doomed.Add(t);
+            }
+            foreach (var t in doomed)
+            {
+                var cell = grid.Get(Mathf.RoundToInt(t.position.x), Mathf.RoundToInt(t.position.y));
+                if (cell != null && cell.Tower == t) DestroyTowerCore(cell, t, "核弹");
+            }
+            if (doomed.Count > 0)
+                SpawnFloat("塔防全毁 ×" + doomed.Count, new Vector3(0f, 1.4f, 0f), Vermilion, 14f);
+            ClearPickupState();
+            RecomputeHighlights();
+            RefreshHud();
+        }
+
+        private void UseTimeStop()
+        {
+            if (model == null || won || model.Failed || !IsTalentActive(TalentIds.TimeStop)) return;
+            if (timeStopUsedThisLevel) return;
+            timeStopUsedThisLevel = true;
+            model.TimeStopRemaining = gameParams != null ? gameParams.timeStopSeconds : 5f;
+            sfx?.PlayTimeStop();
+            SpawnFloat("咋 瓦 鲁 多 ！", new Vector3(0f, 2.2f, 0f), BlueInk, 18f);
+        }
+
+        private void StartTome(int mode)
+        {
+            if (model == null || won || model.Failed) return;
+            float cd = mode == 1 ? tomeCd1 : tomeCd2;
+            if (cd > 0f) return;
+            if (tomeMode == mode) { tomeMode = 0; return; } // 再点取消
+            tomeMode = mode;
+            SpawnFloat(mode == 1 ? "点一座塔：秘籍 +1 阶" : "点一座塔：50% ±1 阶",
+                new Vector3(0f, 2.2f, 0f), BlueInk, 12f);
+        }
+
+        /// <summary>选塔模式下点塔结算；返回 true = 已消费（调用方 return）。</summary>
+        private bool TryUseTomeOn(GridCell cell)
+        {
+            if (tomeMode == 0) return false;
+            var t = cell.Tower;
+            if (t == null || t.isMirror || t.locked) return false; // 空/镜影/锁定：继续等目标
+            int mode = tomeMode;
+            tomeMode = 0;
+            if (mode == 1)
+            {
+                if (model.TryUpgradeTower(t)) SpawnFloat("秘籍 Lv" + t.level, CellTop(cell) + Vector3.up * 0.7f, Vermilion, 12f);
+                tomeCd1 = gameParams != null ? gameParams.tomeCd : 60f;
+            }
+            else
+            {
+                bool up = UnityEngine.Random.value < 0.5f;
+                if (up) model.TryUpgradeTower(t);
+                else model.DowngradeTower(t);
+                SpawnFloat(up ? "劣籍 +1 Lv" + t.level : "劣籍 −1 Lv" + t.level,
+                    CellTop(cell) + Vector3.up * 0.7f, up ? Vermilion : GrayInk, 12f);
+                tomeCd2 = gameParams != null ? gameParams.tomePoorCd : 30f;
+            }
+            ShowTower(cell, t);
+            RefreshHud();
+            return true;
+        }
+
+        private System.Collections.IEnumerator ShakeCamera(float seconds, float magnitude)
+        {
+            var cam = Camera.main;
+            if (cam == null) yield break;
+            Vector3 basePos = cam.transform.position;
+            float t = 0f;
+            while (t < seconds)
+            {
+                t += Time.unscaledDeltaTime;
+                Vector2 r = UnityEngine.Random.insideUnitCircle * magnitude;
+                cam.transform.position = basePos + new Vector3(r.x, r.y, 0f);
+                yield return null;
+            }
+            cam.transform.position = basePos;
+        }
+
+        /// <summary>天赋·利滚利（用户 2026-11-04）：每波开始获得利息 = floor(当前墨 ÷ 10)。</summary>
+        private void ApplyInterest()
+        {
+            if (model == null || !IsTalentActive(TalentIds.Interest)) return;
+            int interest = Mathf.FloorToInt((float)model.Ink / 10f);
+            if (interest <= 0) return;
+            model.Ink += interest;
+            SpawnFloat("利息 +" + interest, new Vector3(0f, 3.3f, 0f), BlueInk, 11f);
+            RefreshHud();
+        }
+
+        /// <summary>天赋·天赋异禀（用户 2026-11-04）：正常合并成功时 33% 额外 +1 阶（不破 6 阶上限）。</summary>
+        private void TryProdigy(TowerState t, GridCell cell, Vector3 above)
+        {
+            if (t == null || cell == null || model == null) return;
+            if (!IsTalentActive(TalentIds.Prodigy)) return;
+            if (UnityEngine.Random.value >= 0.33f) return;
+            if (!model.TryUpgradeTower(t)) return;      // 已封顶则同字升阶失败，静默
+            ShowTower(cell, t);
+            if (towerViewMap.TryGetValue(t, out var v)) v.Pop();
+            sfx?.PlayMerge(t.level);
+            SpawnFloat("天赋异禀 · Lv" + t.level, above, HexUtil.ToColor("#A67C1B"), 12f);
+        }
+
+        /// <summary>
+        /// 局外金币结算（用户 2026-11-04，ADR-084）：每次通关（含重打）结算一次。
+        /// 剩余墨 × goldPerInk（向下取整）+ 剩余印 × goldPerLife；失败/回滚不调用。
+        /// 金币写档由 CheckWon 末尾的 WriteSave 落盘。
+        /// </summary>
+        private void GrantClearGold()
+        {
+            if (save == null || model == null) return;
+            float perInk = gameParams != null ? gameParams.goldPerInk : 1f;
+            int perLife = gameParams != null ? gameParams.goldPerLife : 10;
+            int gain = Mathf.FloorToInt((float)model.Ink * perInk) + Mathf.Max(0, model.Lives) * perLife;
+            if (gain <= 0) return;
+            save.gold += gain;
+            SpawnFloat("金币 +" + gain, new Vector3(0f, 3.7f, 0f), HexUtil.ToColor("#A67C1B"), 14f);
+        }
+
         /// <summary>暂停切换（右上角钮 / P 键）。结束态拦：结算画面有自己的按钮交互，暂停无意义。</summary>
         private void TogglePause()
         {
@@ -1067,40 +1376,14 @@ namespace WordWars
             if (pauseVeilRoot != null) pauseVeilRoot.SetActive(false);
         }
 
-        // ============ F4.1（docs/14，ADR-064）常驻回滚按钮 + 二次确认 ============
+        // ============ F4.1（docs/14，ADR-064）重开 + 二次确认 ============
 
         /// <summary>
-        /// 左下角常驻「回滚」按钮（z 同换面钮层；战斗中/结束后都可用）+ 二次确认遮罩（初始隐藏）。
-        /// 位置 (-8.1, -3.5) = 换面钮 (8.1, -3.5) 的镜像，落在「章图底行 ↔ 手牌条顶」的空带里。
+        /// 左下角常驻「重开」已并进暂停菜单（用户 2026-11-06）——角落整块让给棋盘，不跟手牌抢位置。
+        /// 二次确认弹窗仍然要建：菜单里的「重开本关」走同一条 ConfirmRetry。
         /// </summary>
         private void BuildRetryButton()
         {
-            var holder = new GameObject("RetryBtnHolder");
-            holder.transform.SetParent(transform, false);
-            holder.transform.position = new Vector3(-8.1f, -3.5f, -1.7f);
-            retryBtnRoot = holder;
-
-            var go = new GameObject("RetryBtn", typeof(SpriteRenderer), typeof(BoxCollider2D));
-            go.transform.SetParent(holder.transform, false);
-            go.transform.localScale = new Vector3(1.7f, 0.7f, 1f);
-            var bg = go.GetComponent<SpriteRenderer>();
-            bg.sprite = whiteSprite;
-            bg.color = new Color(0.93f, 0.89f, 0.80f, 0.95f);
-            var col = go.GetComponent<BoxCollider2D>();
-            col.size = Vector2.one * 1.02f;
-
-            var labelGo = new GameObject("Label", typeof(RectTransform), typeof(MeshRenderer), typeof(MeshFilter));
-            labelGo.transform.SetParent(holder.transform, false);
-            labelGo.transform.localPosition = new Vector3(0f, 0.02f, -0.15f);
-            var label = labelGo.AddComponent<TextMeshPro>();
-            label.font = font;
-            label.fontSize = 7f;
-            label.alignment = TextAlignmentOptions.Center;
-            label.color = HexUtil.ToColor("#26231F");
-            label.text = "重开";
-            labelGo.GetComponent<RectTransform>().sizeDelta = new Vector2(3f, 1.2f);
-            go.AddComponent<WorldButton>().Init(ConfirmRetry, label);
-
             BuildRetryConfirm();
         }
 
@@ -1141,7 +1424,7 @@ namespace WordWars
             title.fontSize = 10f;
             title.alignment = TextAlignmentOptions.Center;
             title.color = HexUtil.ToColor("#26231F");
-            title.text = "重玩本关？";
+            title.text = "重开本关？";
             titleGo.GetComponent<RectTransform>().sizeDelta = new Vector2(6f, 1.2f);
 
             // 确认 / 取消（复用世界按钮三层结构，挂 root 下摆位）
@@ -1153,7 +1436,7 @@ namespace WordWars
 
         /// <summary>面板按钮（holder 等比 → body 判定 → label 挂 holder）。dim = 占位灰态（无回调）。</summary>
         private WorldButton MakePanelButton(Transform parent, string name, Vector3 localPos, string text, Color color, bool dim, System.Action onClick,
-            float width = 2.4f, float fontSize = 8f)
+            float width = 2.4f, float fontSize = 8f, float height = 0.9f)
         {
             var holder = new GameObject(name + "Holder");
             holder.transform.SetParent(parent, false);
@@ -1161,7 +1444,7 @@ namespace WordWars
 
             var go = new GameObject(name, typeof(SpriteRenderer), typeof(BoxCollider2D));
             go.transform.SetParent(holder.transform, false);
-            go.transform.localScale = new Vector3(width, 0.9f, 1f);
+            go.transform.localScale = new Vector3(width, height, 1f);
             var bg = go.GetComponent<SpriteRenderer>();
             bg.sprite = whiteSprite;
             bg.color = dim ? new Color(0.72f, 0.69f, 0.64f, 0.85f) : new Color(0.85f, 0.80f, 0.70f, 0.98f);
@@ -1271,7 +1554,7 @@ namespace WordWars
                 ? path.HomePosition                                  // 双向章（ch3）：家 = 弧长中点（正中格，敌半程终点）
                 : route.PointAt(route.Length);                       // 单向章：家 = 路线终点
             homeRoot.transform.position = new Vector3(homePos.x, homePos.y, -1.75f);
-            homeRoot.SetActive(true);
+            homeRoot.SetActive(IsTalentActive(TalentIds.Family)); // 家族企业：有天赋才有家
             UpdateHomeLabel();
         }
 
@@ -1290,40 +1573,41 @@ namespace WordWars
         private void UpdateHomeLabel()
         {
             if (homeLabel == null) return;
-            // P1.2（用户 2026-10-24）：简单模式家为灰态（不可升级）；困难模式按阶色
-            homeLabel.color = hardMode ? HomeTierColor(homeLevel) : new Color(0.55f, 0.53f, 0.50f, 0.55f);
+            // 家族企业：按阶色（1-5）；无天赋时家隐藏（不会走到这里）
+            homeLabel.color = HomeTierColor(homeLevel);
         }
 
-        /// <summary>点击家 = 升级（当前无成本，同初始墨升级；满级弹文案）。</summary>
+        /// <summary>点击家 = 显示当前产墨信息（用户 2026-11-04：取消点击升级，改成每过一关自动 +1）。</summary>
         private void UpgradeHome()
         {
             if (model == null) return;
-            // P1.2（用户 2026-10-24）：家只有困难模式能升级（简单模式出现但灰态）
-            if (!hardMode)
+            if (homeLevel <= 0)
             {
-                SpawnFloat("困难模式才能升级家", (Vector3)homePos + Vector3.up * 0.9f, GrayInk);
+                SpawnFloat("需要「家族企业」天赋", (Vector3)homePos + Vector3.up * 0.9f, GrayInk);
                 return;
             }
-            int max = gameParams != null ? gameParams.homeMaxLevel : 5;
-            if (homeLevel >= max)
-            {
-                SpawnFloat("家已满级", (Vector3)homePos + Vector3.up * 0.9f, GrayInk);
-                return;
-            }
-            homeLevel++;
-            if (save != null && CurrentChapterState != null) CurrentChapterState.homeLevel = homeLevel;
-            homeInkTimer = 0; // 升级后重新计时
-            UpdateHomeLabel();
-            SpawnFloat("家升级 → Lv" + homeLevel, (Vector3)homePos + Vector3.up * 0.9f, BlueInk);
-            RefreshHud();
-            WriteSave(); // 章内即时落盘（与红铲同口径）
+            SpawnFloat("家 Lv" + homeLevel + " · 每跳 +" + HomeInkPerPulse + " 墨（每过一关自动 +1）",
+                (Vector3)homePos + Vector3.up * 0.9f, BlueInk);
+        }
+
+        /// <summary>本章已通关的关数（按当前模式；用于家族企业的家自动升阶）。</summary>
+        private int CountClearedInChapter(int chapterId, bool hard)
+        {
+            if (save == null) return 0;
+            var list = hard ? save.hardClearedLevels : save.easyClearedLevels;
+            if (list == null || levels == null) return 0;
+            int first = (Mathf.Max(1, chapterId) - 1) * 5 + 1;
+            int count = 0;
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] >= first && list[i] <= first + 4) count++;
+            return count;
         }
 
         /// <summary>家产墨（每 homeInkPulseSeconds 一跳；只在未定胜负时调用 = 经济随战斗停）。</summary>
         private void UpdateHomeInk(double dt)
         {
-            // P1.2：简单模式家不产墨（homeLevel 恒 0，双保险）
-            if (!hardMode || homeLevel <= 0 || model == null || gameParams == null) return;
+            // 家族企业：仅天赋激活时产墨（homeLevel 0 = 无天赋，双保险）
+            if (homeLevel <= 0 || model == null || gameParams == null) return;
             homeInkTimer += dt;
             double interval = Mathf.Max(0.5f, gameParams.homeInkPulseSeconds);
             int guard = 0;
@@ -1499,7 +1783,23 @@ namespace WordWars
         }
 
         /// <summary>R：回滚本关开始快照（ADR-018）。</summary>
-        private void RetryLevel() => RequestEnterLevel(levelIndex, snapshot);
+        private void RetryLevel()
+        {
+            RefundLevelNukes(); // 用户 2026-11-07：重玩本关 → 返还本关用掉的核弹
+            RequestEnterLevel(levelIndex, snapshot);
+        }
+
+        /// <summary>重玩本关：把本关用掉的核弹加回本章计数（跨关推进不返还）。</summary>
+        private void RefundLevelNukes()
+        {
+            if (nukesUsedThisLevel <= 0) return;
+            if (save != null && save.hardChapterState != null)
+            {
+                save.hardChapterState.nukeLeft += nukesUsedThisLevel;
+                SaveSystem.Write(save);
+            }
+            nukesUsedThisLevel = 0;
+        }
 
         // ============ 测试键（docs/14 菜单，仅测试用） ============
 
@@ -1701,11 +2001,13 @@ namespace WordWars
         {
             if (model == null) return;
 
-            // 构筑面板/结算/日记打开 = 全局暂停（03 §4.6：面板期间不出怪/不走表/不吃键）
+            // 构筑面板/结算/日记/天赋配置打开 = 全局暂停（03 §4.6：面板期间不出怪/不走表/不吃键）
             bool panelOpen = (deckPanel != null && deckPanel.IsOpen)
                           || (clearPanel != null && clearPanel.IsOpen)
-                          || (diaryPanel != null && diaryPanel.IsOpen);
+                          || (diaryPanel != null && diaryPanel.IsOpen)
+                          || (talentPanel != null && talentPanel.IsOpen);
             if (panelOpen) return;
+            UpdateTalentButtons();
 
             // 暂停闸（用户 2026-10-12 点题）：paused 只冻结战斗推进与视觉轮询（Tick/波次/tint/
             // 栖灯倒数）；输入段照常——键盘调试通道照用（R/N 进关自动复位暂停）、「点击任意
@@ -1950,6 +2252,7 @@ namespace WordWars
             var layout = level.waves[i];
             model.Wave = i + 1;
             if (hud != null) hud.SetWave(model.Wave);
+            ApplyInterest(); // 天赋·利滚利：每波开始按墨量吃利息
 
             // F2.1 潮汐预报（06 §10.2）：波开始时切水线——波次表可预读即潮汐表。
             // Hold = 沿用当前水线（ch1 全 Hold → 潮汐系统零激活，铁律不破）
@@ -2506,6 +2809,7 @@ namespace WordWars
 
             won = true;
             sfx?.PlayVictory(); // 胜利音（ADR-083）
+            GrantClearGold();   // 局外金币：剩余墨 1:1 + 剩余印 ×10（用户 2026-11-04）
             LogTuningReport("通关"); // F7.1 探针：场末体检（胜利帧）
             // 手感修正（用户 2026-10-09 六轮）：此处原清拿起/选中态——但 ClearPickupState
             // 只清引用不清虚影/浮起，胜利时拿着的塔变「幽灵」：视觉残留、点原格静默无反应
@@ -2538,9 +2842,10 @@ namespace WordWars
                 firstClear = cleared == null || !cleared.Contains(levelIndex);
             }
             var rewardCards = level != null ? level.rewardCards : null;
-            // P5（用户 2026-10-26）：胜利帧不再弹结算——只记下「首次通关 + 有奖励」，
-            // 等玩家点「下一关」后再逐张展示（每卡一屏）。
-            if (clearPanel != null && firstClear && rewardCards != null && rewardCards.Count > 0)
+            // P5（用户 2026-10-26）+ ADR-087：胜利帧只记下奖励，点「下一关」后逐张展示。
+            // 困难模式：本关奖励卡在进关时**已拥有**（普通模式拿过）→ 不弹「获得」。
+            bool hardHasNew = !hardMode || entryAddedRewards.Count > 0;
+            if (clearPanel != null && firstClear && hardHasNew && rewardCards != null && rewardCards.Count > 0)
             {
                 pendingRewardCards = new List<string>(rewardCards);
                 pendingRewardLevel = levelIndex;
@@ -2863,6 +3168,7 @@ namespace WordWars
             // 手感优化（2026-10-09）：结束后可继续摆弄（放/挪/合/虚影取消照常；Tick 停 =
             // 战斗与生产冻结——「可操作但经济塔停产」正解）。
             if (model == null || cell == null) return;
+            if (TryUseTomeOn(cell)) return; // 天赋·升阶秘籍：选塔模式下点塔直接结算
 
             // —— 源 = 拿起中的塔（移动 / 合并 / 取消）——
             if (pickedTower != null)
@@ -3425,6 +3731,7 @@ namespace WordWars
                 sfx?.PlayMerge(tower.level); // 卡上塔升阶（结果等级）
                 ShowTower(cell, tower);
                 SpawnFloat("升阶 Lv" + tower.level, above, BlueInk);
+                TryProdigy(tower, cell, above); // 天赋·天赋异禀：33% 越阶
                 tutorial?.Notify(TutorialEvent.Merge); // L0 教学：卡上塔升阶完成（ADR-030）
             }
 
@@ -3464,6 +3771,7 @@ namespace WordWars
             if (towerViewMap.TryGetValue(target, out var merged)) merged.Pop(); // 0.3：合并色跳弹跳强调
             sfx?.PlayMerge(target.level); // 合成按结果等级（ADR-083）
             SpawnFloat("合并 Lv" + target.level, above, BlueInk);
+            TryProdigy(target, targetCell, above); // 天赋·天赋异禀：33% 越阶
             tutorial?.Notify(TutorialEvent.Merge); // L0 教学：塔上塔合并完成（ADR-030）
 
             RecomputeHighlights();
@@ -4659,6 +4967,13 @@ namespace WordWars
             if (floatViews != null) floatViews.Release(f);
         }
 
+        /// <summary>
+        /// 飘字整体缩放（用户 2026-11-06「飘字大小调整一下」）：伤害数字原本 10 号，和敌字一样大，
+        /// 一屏溅射能把半个战场盖住。统一乘 0.72——伤害 10→7.2、交互提示 7→5、演出大字 20→14.4。
+        /// 要再调就改这一个数。
+        /// </summary>
+        private const float FloatScale = 0.72f;
+
         private void SpawnFloat(string text, Vector3 pos, Color color, float size = 0f)
         {
             if (floatViews == null) return;
@@ -4669,6 +4984,7 @@ namespace WordWars
             // size=0（缺省）= 交互文案，字号走 GameParams.toastFontSize（用户 2026-10-02「小很多」，14→7）；
             // 战斗数值（伤害/掉墨/激怒）由调用方显式传固定小号（10/12）
             if (size <= 0f) size = gameParams != null ? gameParams.toastFontSize : 7f;
+            size *= FloatScale;
             var f = floatViews.Get(floatTemplate);
             f.Show(text, pos, color, size);
         }
@@ -4692,31 +5008,16 @@ namespace WordWars
             // F2.2（ADR-054）：红铲模式遇换关/回滚/开构筑面板 = 状态清理（全额退款退出，非取消键）
             CancelRedShovel(true);
 
-            // —— 奖励解锁 ——
-            // 普通模式（ADR-023）：进关意图确定即入包 levels[0..index].rewardCards 并集（幂等）。
-            // 必须在构筑面板之前——否则首次进 L4 时棍/戟不在面板上（7选5 教学失效）。
-            // 困难模式（用户 2026-10-26 改）：6 阶解锁跟「普通模式上一关解锁的卡牌」→ levels[0..index-1]。
-            bool tier6Changed = false;
-            if (!hardMode)
-            {
-                for (int i = 0; i <= index; i++)
-                    if (levels[i] != null && levels[i].rewardCards != null)
-                        foreach (var card in levels[i].rewardCards) backpack.AddCard(card);
-            }
-            else if (save != null)
-            {
-                if (save.tier6Unlocked == null) save.tier6Unlocked = new List<string>();
-                for (int i = 0; i < index; i++)
-                    if (levels[i] != null && levels[i].rewardCards != null)
-                        foreach (var card in levels[i].rewardCards)
-                        {
-                            if (save.tier6Unlocked.Contains(card)) continue;
-                            save.tier6Unlocked.Add(card);
-                            tier6Changed = true;
-                            Debug.Log("[6阶] 困难模式解锁：" + card);
-                        }
-            }
-            if (tier6Changed) SaveSystem.Write(save); // 解锁即时落盘（不等下次自然存档）
+            // —— 奖励解锁（用户 2026-11-04，ADR-087：困难模式改回「解锁塔防」，不再解锁 6 阶）——
+            // 两种模式统一：进关意图确定即入包 levels[0..index].rewardCards 并集（幂等）。
+            // entryAddedRewards = 本次进关**新增**的卡（本关自身 rewardCards 里新入包的）——
+            // 困难模式「已拥有则不弹获得界面」靠它判断。
+            entryAddedRewards.Clear();
+            for (int i = 0; i <= index; i++)
+                if (levels[i] != null && levels[i].rewardCards != null)
+                    foreach (var card in levels[i].rewardCards)
+                        if (backpack.AddCard(card) && i == index)
+                            entryAddedRewards.Add(card);
 
             // P5（用户 2026-10-26）：通关奖励卡改在「点下一关之后」逐张展示（每张卡一屏），
             // 不再在胜利帧弹出（避免压住左下「回滚」按钮与结果按钮）。
@@ -4728,7 +5029,7 @@ namespace WordWars
                 clearQueue.Clear();
                 clearQueue.AddRange(pendingRewardCards);
                 clearQueueIndex = 0;
-                clearQueueTier6 = hardMode;
+                clearQueueTier6 = false; // ADR-087：困难也走「获得塔防」，6 阶改商店解锁
                 clearQueueLevel = pendingRewardLevel;
                 clearQueueNext = index;
                 clearQueueField = field;
@@ -4781,15 +5082,98 @@ namespace WordWars
                 () => { clearQueueIndex++; ShowNextClearCard(); });
         }
 
-        /// <summary>进关期间隐藏常驻「回滚」钮（它在 z=-1.7，会盖在结算/日记面板之上）。</summary>
+        /// <summary>
+        /// 进关期间隐藏常驻「回滚」钮（它在 z=-1.7，会盖在结算/日记面板之上）。
+        /// 2026-11-06：那颗左下角按钮已并进暂停菜单，这里保留空实现给既有调用点，不再有可隐藏对象。
+        /// </summary>
         private void SetPlayHudVisible(bool visible)
         {
-            if (retryBtnRoot != null) retryBtnRoot.SetActive(visible);
+        }
+
+        // ============ v4 天赋（用户 2026-11-04，ADR-086） ============
+
+        /// <summary>本章已配置的天赋是否包含 id（仅困难模式生效）。</summary>
+        private bool IsTalentActive(string id)
+        {
+            if (!hardMode || save == null || save.hardChapterState == null) return false;
+            var hs = save.hardChapterState;
+            return hs.talentChapter != 0 && hs.chapterTalents != null && hs.chapterTalents.Contains(id);
+        }
+
+        /// <summary>关卡所属章 id（空的 level.chapter 回退场景 chapter，与 BGM 口径一致）。</summary>
+        private int ChapterIdOf(LevelConfig lv)
+        {
+            var ch = lv != null && lv.chapter != null ? lv.chapter : chapter;
+            return ch != null ? Mathf.Max(1, ch.chapterId) : 1;
+        }
+
+        /// <summary>锁定本章天赋配置（写档）。</summary>
+        private void LockTalents(int chapterId, List<string> chosen)
+        {
+            if (save == null) return;
+            if (save.hardChapterState == null) save.hardChapterState = new ChapterStateData();
+            var hs = save.hardChapterState;
+            hs.talentChapter = chapterId;
+            hs.chapterTalents = chosen != null ? new List<string>(chosen) : new List<string>();
+            hs.nukeLeft = gameParams != null ? gameParams.nukePerChapter : 6;
+            SaveSystem.Write(save);
+        }
+
+        /// <summary>
+        /// 进困难新章时的天赋配置：返回 true = 已拦下面板（调用方 return）。
+        /// 没有已购天赋 → 直接锁定空配置（不弹面板）；已配置过的章 → 不重复弹。
+        /// </summary>
+        private bool TryShowTalentConfig(int index, LevelStartSnapshotData field)
+        {
+            if (save == null || talentPanel == null) return false;
+            if (talentConfig == null)
+            {
+                Debug.LogWarning("[天赋] TalentConfig 未注入战斗场景——跑一次「Word Wars/Setup/自愈场景（保留手动调整）」");
+                return false;
+            }
+            int chId = ChapterIdOf(levels[index]);
+            if (save.hardChapterState == null) save.hardChapterState = new ChapterStateData();
+            var hs = save.hardChapterState;
+            var owned = save.talents ?? new List<string>();
+
+            // 自愈：之前「没买天赋」时被空锁定 → 现在有天赋了，解除锁定重配
+            if (hs.talentChapter == chId && (hs.chapterTalents == null || hs.chapterTalents.Count == 0) && owned.Count > 0)
+                hs.talentChapter = 0;
+            if (hs.talentChapter == chId) return false;
+
+            if (owned.Count == 0)
+            {
+                // 没买过天赋：不锁定（否则以后买了也用不了），给一句提示
+                hud?.ShowBanner("还没有天赋：去主界面「商店」购买后再进困难章");
+                return false;
+            }
+
+            HideResultButtons();
+            hud?.HideBanner();
+            SetPlayHudVisible(false);
+            talentPanel.Show(owned, Mathf.Clamp(save.talentSlots, 1, 7), chosen =>
+            {
+                LockTalents(chId, chosen);
+                ContinueEnterLevel(index, field); // 配置完成 → 回到进关续段（此时已锁定）
+            });
+            return true;
+        }
+
+        /// <summary>测试用：解除本章天赋锁定（下次进关重新配置）。</summary>
+        private void ResetChapterTalents()
+        {
+            if (save == null || save.hardChapterState == null) return;
+            save.hardChapterState.talentChapter = 0;
+            SaveSystem.Write(save);
+            hud?.ShowBanner("已重置本章天赋（下次进关重配）");
         }
 
         /// <summary>P6 拆段：日记之后（或没有日记时）的进关续段——构筑面板 → 落场。</summary>
         private void ContinueEnterLevel(int index, LevelStartSnapshotData field)
         {
+            // v4（用户 2026-11-04，ADR-086）：困难模式进新章 → 先配天赋（本章锁定）
+            if (hardMode && save != null && TryShowTalentConfig(index, field)) return;
+
             // P（用户 2026-10-26）：背包解锁后（曾进入过 L3），回到前几关（L1/L2）也弹构筑面板；L0 教学不弹。
             bool backpackUnlocked = save != null && save.maxLevelUnlocked >= 4;
             if (index > 0 && (index >= 3 || backpackUnlocked) && deckPanel != null)
@@ -4919,13 +5303,21 @@ namespace WordWars
             redShovelBought = (field != null && !resumingSave)
                 ? field.redShovelBought
                 : (save != null && CurrentChapterState != null ? CurrentChapterState.redShovelBought : 0);
-            // 家（用户 2026-10-23）：章内跨关累积、章界清零（章级状态，不进关开始快照）
-            if (chapterBoundary && save != null && CurrentChapterState != null)
-                CurrentChapterState.homeLevel = 0;
-            homeLevel = save != null && CurrentChapterState != null
-                ? Mathf.Clamp(CurrentChapterState.homeLevel, 0, gameParams != null ? gameParams.homeMaxLevel : 5)
+            // 家（用户 2026-11-04，ADR-087）：并入「家族企业」天赋——无天赋 = 无家；
+            // 有天赋 = 1 阶起，每通关本章一关自动 +1（章内最高 5），每章重置（按本章通关数重算）。
+            homeLevel = IsTalentActive(TalentIds.Family)
+                ? Mathf.Clamp(1 + CountClearedInChapter(ChapterIdOf(level), hardMode), 1,
+                    gameParams != null ? gameParams.homeMaxLevel : 5)
                 : 0;
+            if (save != null && CurrentChapterState != null) CurrentChapterState.homeLevel = homeLevel;
             homeInkTimer = 0;
+            // 天赋按钮随场重置：时停一关一次、秘籍 CD、时停残余
+            nukesUsedThisLevel = 0;
+            timeStopUsedThisLevel = false;
+            tomeMode = 0;
+            tomeCd1 = 0f;
+            tomeCd2 = 0f;
+            if (model != null) model.TimeStopRemaining = 0;
             RefreshHome(); // 定位到实路终点 + 刷新文字
             resumingSave = false;
             redShovelMode = false;   // 模式不跨关（已扣墨随退款结算在 RequestEnterLevel 完成）
@@ -5085,9 +5477,12 @@ namespace WordWars
             };
         }
 
-        /// <summary>按钮锚点：按钮正上方 1.3（空带中央）；x 钳 ±5.8（7.6 宽气泡不出 9.6 半屏宽）。</summary>
+        /// <summary>
+        /// 按钮锚点：按钮正上方 1.3（空带中央）；x 钳 ±5.0（气泡宽 8.8，钳住后右缘 9.4 < 半屏 9.6，
+        /// 贴着「卖 / 下一波」也不会被屏幕切掉——旧版气泡 7.6 宽却钳 ±5.8，右缘正好压线）。
+        /// </summary>
         private static Vector3 ButtonAnchor(Vector3 p) =>
-            new Vector3(Mathf.Clamp(p.x, -5.8f, 5.8f), p.y + 1.3f, -2f);
+            new Vector3(Mathf.Clamp(p.x, -5.0f, 5.0f), p.y + 1.3f, -2f);
 
         /// <summary>手牌条中带锚点（放置/合成/移动三步共用）。</summary>
         private Vector3 BarAnchor() =>

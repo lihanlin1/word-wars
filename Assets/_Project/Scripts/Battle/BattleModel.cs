@@ -404,6 +404,32 @@ namespace WordWars
         public event Action<TowerState, double> SoulsPulsed;
         public event Action<double, int> StatsChanged;
 
+        /// <summary>天赋·咋瓦鲁多：剩余时停秒数（>0 = 敌人静止；塔/弹道/DoT 照走）。GameManager 递减。</summary>
+        public double TimeStopRemaining;
+
+        /// <summary>天赋·升阶秘籍（劣）：降一阶（1 阶不降）。</summary>
+        public bool DowngradeTower(TowerState t)
+        {
+            if (t == null || t.level <= 1) return false;
+            t.level--;
+            ApplyLevelStats(t);
+            SyncMirror(t);
+            RefreshLights();
+            return true;
+        }
+
+        /// <summary>天赋·六个核弹：全图敌人受到 dmg（含 Boss；无敌帧照拦）。</summary>
+        public void DamageAll(double dmg)
+        {
+            int n = Enemies.Count; // 快照：击杀分裂会追加表尾，本循环不回访
+            for (int i = 0; i < n; i++)
+            {
+                var e = Enemies[i];
+                if (e == null || e.dead || e.reached) continue;
+                Damage(e, dmg, null);
+            }
+        }
+
         public void Reset(double startInk, int lives)
         {
             Enemies.Clear();
@@ -1095,6 +1121,8 @@ namespace WordWars
                     if (e.face != ActiveFace && !e.nocturnal && !e.isBoss) mult *= FaceInactiveSpeedMult;
                     // F6（ch5 傩神）：傩舞停步（2.5s 定身——唯一高效输出窗，也是唯一危险窗）
                     if (e.nuoShen && e.shenDanceRemaining > 0) mult = 0;
+                    // 天赋·咋瓦鲁多（用户 2026-11-04）：时停期间敌全静止（含 Boss），塔照打
+                    if (TimeStopRemaining > 0) mult = 0;
                     e.dist += e.speed * mult * dt;
                 }
 

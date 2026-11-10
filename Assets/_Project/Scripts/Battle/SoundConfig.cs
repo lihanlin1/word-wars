@@ -98,6 +98,10 @@ namespace WordWars
         public AudioClip faceSwitch;
         [Tooltip("傩舞开始")]
         public AudioClip nuoDance;
+        [Tooltip("六个核弹（全图 −10000）")]
+        public AudioClip nuke;
+        [Tooltip("咋瓦鲁多（时停开始）")]
+        public AudioClip timeStop;
 
         [Header("全局")]
         [Range(0f, 1f)]

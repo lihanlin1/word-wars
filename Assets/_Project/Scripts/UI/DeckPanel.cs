@@ -46,6 +46,7 @@ namespace WordWars
         private Sprite whiteSprite;
         private UIPanelConfig cfg;       // null = 内置缺省
         private GameObject root;
+        private Canvas hudCanvas;        // 屏幕空间 HUD：面板打开期间整体收起（Overlay 压不住）
 
         // 常驻骨架（Init 搭一次；位置/字号由 ApplyLayout 从 cfg 重取）
         private GameObject confirmGo;
@@ -79,6 +80,7 @@ namespace WordWars
         private Func<int> inkProvider;      // 当前初始墨
         private Func<int> inkStepProvider;  // 当前步数（0-6）
         private Func<bool> inkUpgrade;      // 升级一步（成功 = true；由 GameManager 写档）
+        private Func<int> inkPriceProvider;  // v4：下一步要花多少金币（商店同价）
 
         // 每次 Show 的数据
         private readonly List<string> cards = new List<string>();
@@ -128,14 +130,17 @@ namespace WordWars
         private float CInkPlusSize => Mathf.Max(0.3f, cfg != null ? cfg.deckInkPlusSize : 0.95f);
 
         /// <summary>场景创建时调用一次：搭常驻骨架（位置/字号默认值，随后 ApplyLayout 归位）。</summary>
-        public void Init(TMP_FontAsset fontAsset, Sprite white, UIPanelConfig config)
+        public void Init(TMP_FontAsset fontAsset, Sprite white, UIPanelConfig config, Canvas hud = null)
         {
             font = fontAsset;
             whiteSprite = white;
             cfg = config;
+            hudCanvas = hud;
 
             root = new GameObject("Root");
             root.transform.SetParent(transform, false);
+            // 世界坐标 HUD（万能铲 / 菜单 / ×1 在 z≈-1.6）会盖在面板上 → 整块前移 1.2
+            root.transform.localPosition = new Vector3(0f, 0f, -1.2f);
             // 全程激活态搭骨架（TMP Awake 坑），最后才隐藏
 
             // 底幕：暗色盖全场 + 大碰撞体挡住面板后面的战场点击
@@ -257,11 +262,12 @@ namespace WordWars
         /// 升级动作返回 true = 已写档 → 面板原地刷新（面板打开 = 全局暂停，本链路自成闭环）。
         /// 正式版换激励视频只改注入的动作，UI/存档结构不动。
         /// </summary>
-        public void BindInk(Func<int> ink, Func<int> steps, Func<bool> upgrade)
+        public void BindInk(Func<int> ink, Func<int> steps, Func<bool> upgrade, Func<int> price = null)
         {
             inkProvider = ink;
             inkStepProvider = steps;
             inkUpgrade = upgrade;
+            inkPriceProvider = price;
         }
 
         /// <summary>常驻骨架归位（位置/尺寸/字号全从 cfg 重取）——Init 与每次 Show 都跑。</summary>
@@ -325,6 +331,7 @@ namespace WordWars
             pool = towerPool;
             onConfirm = confirmCallback;
 
+            if (hudCanvas != null) hudCanvas.gameObject.SetActive(false); // 模态：HUD 让位
             root.SetActive(true); // 先激活再建卡排（TMP Awake 坑）
             IsOpen = true;
             SfxPlayer.Menu(); // 用户 2026-10-26：面板打开音
@@ -384,6 +391,7 @@ namespace WordWars
         {
             IsOpen = false;
             if (root != null) root.SetActive(false);
+            if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -535,7 +543,10 @@ namespace WordWars
             int ink = inkProvider != null ? inkProvider() : SaveSystem.InitialInk(0);
             int steps = inkStepProvider != null ? inkStepProvider() : 0;
             bool max = steps >= SaveSystem.InkCapMaxSteps;
-            inkLabel.text = "初始墨 " + ink;
+            int price = inkPriceProvider != null ? inkPriceProvider() : 0;
+            inkLabel.text = max
+                ? "初始墨 " + ink + "（已满）"
+                : "初始墨 " + ink + " · " + (price <= 0 ? "免费" : price + "金");
             inkPlusBg.color = max ? ConfirmDisabled : CardPaper;
             inkPlusLabel.color = max ? ZoneLabelColor : InkColor;
         }

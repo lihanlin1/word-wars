@@ -39,6 +39,7 @@ namespace WordWars
         private ChapterConfig[] chapters;
 
         private GameObject root;
+        private GameObject mainRoot;      // 主页面（页头/页签/网格/底注）——塔详情打开时整块收起
         private GameObject contentRoot;
         private GameObject detailRoot;
         private GameObject[] tabGos;
@@ -62,6 +63,13 @@ namespace WordWars
             root = new GameObject("Root");
             root.transform.SetParent(transform, false);
 
+            // 窄屏（4:3 / 平板）整体等比缩小——图鉴是 19.2×10.8 的固定版式，不缩会出框
+            var cam = Camera.main;
+            float fit = cam != null && cam.orthographic
+                ? Mathf.Clamp(Mathf.Min(cam.orthographicSize * cam.aspect / 9.6f, 1f), 0.35f, 1f)
+                : 1f;
+            root.transform.localScale = new Vector3(fit, fit, 1f);
+
             var bgGo = new GameObject("Dim", typeof(SpriteRenderer), typeof(BoxCollider2D));
             bgGo.transform.SetParent(root.transform, false);
             bgGo.transform.localPosition = new Vector3(0f, 0f, -2.0f);
@@ -80,10 +88,14 @@ namespace WordWars
             paper.color = Paper;
             paperGo.GetComponent<BoxCollider2D>().size = Vector2.one * 1.01f;
 
-            Label(root.transform, "Title", "图 鉴", new Vector3(-7.4f, 4.05f, -2.2f), 12f, Ink,
+            // 主页面容器：塔详情打开时整块收起（纸底/暗幕留在 root 上，详情直接铺在纸上）
+            mainRoot = new GameObject("Main");
+            mainRoot.transform.SetParent(root.transform, false);
+
+            Label(mainRoot.transform, "Title", "图 鉴", new Vector3(-7.4f, 4.05f, -2.2f), 12f, Ink,
                 TextAlignmentOptions.Left, 6f);
 
-            MakeButton(root.transform, "返回", new Vector3(7.35f, 4.05f, -2.1f), new Vector2(2.2f, 0.85f),
+            MakeButton(mainRoot.transform, "返回", new Vector3(7.35f, 4.05f, -2.1f), new Vector2(2.2f, 0.85f),
                 5.5f, new Color(0.86f, 0.82f, 0.74f, 1f), Ink, Hide);
 
             // 三个主页面
@@ -93,16 +105,16 @@ namespace WordWars
             for (int i = 0; i < 3; i++)
             {
                 int idx = i;
-                tabGos[i] = MakeButton(root.transform, names[i], new Vector3(-4.4f + i * 4.4f, 3.25f, -2.1f),
+                tabGos[i] = MakeButton(mainRoot.transform, names[i], new Vector3(-4.4f + i * 4.4f, 3.00f, -2.1f),
                     new Vector2(3.6f, 0.9f), 6.5f, TabOff, Paper, () => SwitchTab(idx));
                 tabLabels[i] = tabGos[i].transform.Find("Label")?.GetComponent<TextMeshPro>();
             }
 
             contentRoot = new GameObject("Content");
-            contentRoot.transform.SetParent(root.transform, false);
+            contentRoot.transform.SetParent(mainRoot.transform, false);
             contentRoot.transform.localPosition = new Vector3(0f, 0f, -2.1f);
 
-            tipLabel = Label(root.transform, "Tip", "", new Vector3(0f, -4.45f, -2.2f), 4f, FadeInk,
+            tipLabel = Label(mainRoot.transform, "Tip", "", new Vector3(0f, -4.45f, -2.2f), 4f, FadeInk,
                 TextAlignmentOptions.Center, 16f);
 
             root.SetActive(false);
@@ -188,57 +200,83 @@ namespace WordWars
             tipLabel.text = "已解锁 " + owned + " / " + count + "　·　点卡片查看属性";
         }
 
+        /// <summary>
+        /// 塔详情 = 一整页（不是浮窗）：主页面收起，直接把内容铺在图鉴纸上，
+        /// 页头与主页面同位置（左「图 鉴 · 塔防」、右「返回」），返回 = 回网格。
+        /// 版式：左塔字大卡 / 右上名称+数值 / 下方整幅特性列表。
+        /// </summary>
         private void ShowTowerDetail(TowerCharStats def)
         {
             if (def == null) return;
             CloseDetail();
 
+            // 收起主页面：否则「塔防」页签的朱红底会从纸上面探出一条
+            if (mainRoot != null) mainRoot.SetActive(false);
+
             detailRoot = new GameObject("Detail");
             detailRoot.transform.SetParent(root.transform, false);
 
-            var bg = new GameObject("Dim", typeof(SpriteRenderer), typeof(BoxCollider2D));
-            bg.transform.SetParent(detailRoot.transform, false);
-            bg.transform.localPosition = new Vector3(0f, 0f, -2.5f);
-            bg.transform.localScale = new Vector3(30f, 15f, 1f);
-            var bgs = bg.GetComponent<SpriteRenderer>();
-            bgs.sprite = white;
-            bgs.color = new Color(0.10f, 0.09f, 0.07f, 0.75f);
-            bg.GetComponent<BoxCollider2D>().size = Vector2.one * 1.01f;
-
-            var paperGo = new GameObject("Paper", typeof(SpriteRenderer), typeof(BoxCollider2D));
-            paperGo.transform.SetParent(detailRoot.transform, false);
-            paperGo.transform.localPosition = new Vector3(0f, -0.2f, -2.55f);
-            paperGo.transform.localScale = new Vector3(13.4f, 7.6f, 1f);
-            var ps = paperGo.GetComponent<SpriteRenderer>();
-            ps.sprite = white;
-            ps.color = Paper;
-            paperGo.GetComponent<BoxCollider2D>().size = Vector2.one * 1.01f;
-
-            var glyph = Label(detailRoot.transform, "Glyph", def.charId, new Vector3(-4.6f, 1.5f, -2.7f),
-                18f, Ink, TextAlignmentOptions.Center, 3f);
-            glyph.color = Ink;
-
-            Label(detailRoot.transform, "Name", def.charId + "　" + def.role, new Vector3(0.7f, 2.6f, -2.7f),
-                7f, Ink, TextAlignmentOptions.Center, 8.2f);
-
-            var lines = new List<string>();
-            if (def.damage > 0)
-                lines.Add("伤害 " + def.damage.ToString("0.#") + "　·　攻击间隔 " + def.interval.ToString("0.##") + "s　·　射程 " + def.range.ToString("0.##") + " 格");
-            else
-                lines.Add("无攻击（经济塔）　·　射程 " + def.range.ToString("0.##") + " 格");
-            if (def.rangePerLevel > 0) lines.Add("射程成长：每级 +" + def.rangePerLevel.ToString("0.##") + " 格");
-            lines.Add("卡价 " + def.value + " 墨");
-            lines.Add("");
-            lines.Add("特性");
-            foreach (var t in Traits(def)) lines.Add("· " + t);
-
-            var body = Label(detailRoot.transform, "Body", string.Join("\n", lines),
-                new Vector3(-5.6f, 1.0f, -2.7f), 4.6f, FadeInk, TextAlignmentOptions.TopLeft, 11.6f, wrap: true);
-            body.lineSpacing = 10f;
-            body.rectTransform.pivot = new Vector2(0f, 1f);
-
-            MakeButton(detailRoot.transform, "返回", new Vector3(4.6f, -3.0f, -2.65f), new Vector2(2.6f, 0.9f),
+            Label(detailRoot.transform, "Title", "图 鉴　·　塔防", new Vector3(-7.95f, 4.05f, -2.15f), 7f, Ink,
+                TextAlignmentOptions.Left, 8f);
+            MakeButton(detailRoot.transform, "返回", new Vector3(7.35f, 4.05f, -2.12f), new Vector2(2.2f, 0.85f),
                 5.5f, new Color(0.86f, 0.82f, 0.74f, 1f), Ink, CloseDetail);
+
+            // —— 左：塔字大卡（左边与页头「图 鉴」同一条竖线）——
+            var card = new GameObject("Card", typeof(SpriteRenderer));
+            card.transform.SetParent(detailRoot.transform, false);
+            card.transform.localPosition = new Vector3(-6.35f, 2.0f, -2.12f);
+            card.transform.localScale = new Vector3(3.2f, 3.2f, 1f);
+            var cs = card.GetComponent<SpriteRenderer>();
+            cs.sprite = white;
+            cs.color = CardBg;
+
+            Label(detailRoot.transform, "Glyph", def.charId, new Vector3(-6.35f, 2.0f, -2.2f), 15f, Ink,
+                TextAlignmentOptions.Center, 3.2f);
+
+            // —— 右上：名称 / 数值 / 卡价 ——
+            string role = string.IsNullOrEmpty(def.role) ? "" : "　" + def.role;
+            Label(detailRoot.transform, "Name", def.charId + role, new Vector3(-4.35f, 3.05f, -2.2f), 7f, Ink,
+                TextAlignmentOptions.Left, 12f);
+
+            string statLine = def.damage > 0
+                ? "伤害 " + def.damage.ToString("0.#") + "　·　攻击间隔 " + def.interval.ToString("0.##") +
+                  "s　·　射程 " + def.range.ToString("0.##") + " 格"
+                : "无攻击（经济塔）　·　射程 " + def.range.ToString("0.##") + " 格";
+            Label(detailRoot.transform, "Stats", statLine, new Vector3(-4.35f, 2.35f, -2.2f), 4.3f, FadeInk,
+                TextAlignmentOptions.Left, 12f);
+
+            string metaLine = "卡价 " + def.value + " 墨";
+            if (def.rangePerLevel > 0)
+                metaLine += "　·　射程成长：每级 +" + def.rangePerLevel.ToString("0.##") + " 格";
+            Label(detailRoot.transform, "Meta", metaLine, new Vector3(-4.35f, 1.8f, -2.2f), 4.3f, BlueInk,
+                TextAlignmentOptions.Left, 12f);
+
+            // —— 分隔线 + 特性 ——
+            var rule = new GameObject("Rule", typeof(SpriteRenderer));
+            rule.transform.SetParent(detailRoot.transform, false);
+            rule.transform.localPosition = new Vector3(0f, 0.15f, -2.13f);
+            rule.transform.localScale = new Vector3(15.9f, 0.014f, 1f);
+            var rs = rule.GetComponent<SpriteRenderer>();
+            rs.sprite = white;
+            rs.color = new Color(0.15f, 0.13f, 0.11f, 0.18f);
+
+            Label(detailRoot.transform, "TraitTitle", "特 性", new Vector3(-7.95f, -0.28f, -2.2f), 4.4f, Ink,
+                TextAlignmentOptions.Left, 3f);
+
+            var traits = Traits(def);
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < traits.Count; i++)
+            {
+                if (i > 0) sb.Append('\n');
+                sb.Append("· ").Append(traits[i]);
+            }
+
+            // Top 对齐 + pivot(0,1)：位置即文本框左上角，往下铺 3.6（最多 8 行左右）
+            var body = Label(detailRoot.transform, "Traits", sb.ToString(),
+                new Vector3(-7.95f, -0.68f, -2.2f), 4.2f, FadeInk, TextAlignmentOptions.TopLeft, 15.9f, wrap: true);
+            body.lineSpacing = 8f;
+            body.rectTransform.sizeDelta = new Vector2(15.9f, 3.6f);
+            body.rectTransform.pivot = new Vector2(0f, 1f);
         }
 
         private List<string> Traits(TowerCharStats d)
@@ -273,6 +311,7 @@ namespace WordWars
         {
             if (detailRoot != null) Destroy(detailRoot);
             detailRoot = null;
+            if (mainRoot != null) mainRoot.SetActive(true); // 详情页收起，主页面回来
         }
 
         // ================= 敌人 =================
@@ -527,9 +566,16 @@ namespace WordWars
         private TextMeshPro Label(Transform parent, string name, string text, Vector3 pos, float size,
             Color color, TextAlignmentOptions align, float width, bool wrap = false)
         {
+            // Left/Right 补半个宽度：TMP 的 rect 以 pos 为中心，不补的话「左对齐」会整块往左溢出
+            // （左上角「图 鉴」原本整块出到屏幕外，只剩「鉴」）。TopLeft/BottomLeft 不在此列——
+            // 那两处调用方自己把 pivot 设成 (0,1)，位置即左上角。
+            float dx = 0f;
+            if (align == TextAlignmentOptions.Left) dx = width * 0.5f;
+            else if (align == TextAlignmentOptions.Right) dx = -width * 0.5f;
+
             var go = new GameObject(name, typeof(RectTransform), typeof(MeshRenderer), typeof(MeshFilter));
             go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos;
+            go.transform.localPosition = new Vector3(pos.x + dx, pos.y, pos.z);
             var t = go.AddComponent<TextMeshPro>();
             if (font != null) t.font = font;
             t.fontSize = size;

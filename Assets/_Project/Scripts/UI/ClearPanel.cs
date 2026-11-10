@@ -24,6 +24,7 @@ namespace WordWars
         private TMP_FontAsset font;
         private Sprite white;
         private GameObject root;
+        private Canvas hudCanvas;   // 屏幕空间 HUD：面板打开期间整体收起（Overlay 压不住）
         private TextMeshPro titleLabel;
         private TextMeshPro descLabel;
         private TextMeshPro badgeLabel;
@@ -36,13 +37,16 @@ namespace WordWars
         public bool IsOpen { get; private set; }
 
         /// <summary>运行时自建一次（GameManager 启动时调用）。</summary>
-        public void Init(TMP_FontAsset fontAsset, Sprite whiteSprite)
+        public void Init(TMP_FontAsset fontAsset, Sprite whiteSprite, Canvas hud = null)
         {
             font = fontAsset;
             white = whiteSprite;
+            hudCanvas = hud;
 
             root = new GameObject("Root");
             root.transform.SetParent(transform, false);
+            // 世界坐标 HUD（万能铲 / 菜单 / ×1 在 z≈-1.6）会盖在面板上 → 整块前移 1.2
+            root.transform.localPosition = new Vector3(0f, 0f, -1.2f);
 
             // 底幕：压暗全场 + 挡住战场点击（点任意处 = 继续）
             var bgGo = new GameObject("Dim", typeof(SpriteRenderer), typeof(BoxCollider2D));
@@ -110,6 +114,7 @@ namespace WordWars
         {
             onContinue = onDone;
 
+            if (hudCanvas != null) hudCanvas.gameObject.SetActive(false); // 模态：HUD 让位
             root.SetActive(true);
             IsOpen = true;
             SfxPlayer.Menu(); // 结算打开音（用户 2026-10-26）
@@ -159,6 +164,7 @@ namespace WordWars
         {
             IsOpen = false;
             if (root != null) root.SetActive(false);
+            if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
         }
 
         private void OnContinueClicked()

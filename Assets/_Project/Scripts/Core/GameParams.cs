@@ -240,6 +240,24 @@ namespace WordWars
         [Tooltip("6 阶等级上限（黄底 6；仅已解锁该塔 6 阶时才可达）")]
         public int tier6MaxLevel = 6;
 
+        [Header("局外金币（用户 2026-11-04，ADR-084）")]
+        [Tooltip("结算：剩余墨 → 金币 的倍率（黄底 1 = 1 墨 1 金币；向下取整）")]
+        public float goldPerInk = 1f;
+        [Tooltip("结算：每颗剩余印（♥）折合金币（黄底 10；满印 5 颗 = 50）")]
+        public int goldPerLife = 10;
+
+        [Header("天赋（用户 2026-11-04，ADR-086）")]
+        [Tooltip("六个核弹：每章发数（跨 5 关共享，章界重置；黄底 6）")]
+        public int nukePerChapter = 6;
+        [Tooltip("核弹伤害（全图，含 Boss；黄底 10000）")]
+        public double nukeDamage = 10000;
+        [Tooltip("咋瓦鲁多：时停秒数（黄底 5）")]
+        public float timeStopSeconds = 5f;
+        [Tooltip("升阶秘籍：冷却秒数（黄底 60）")]
+        public float tomeCd = 60f;
+        [Tooltip("升阶秘籍（劣）：冷却秒数（黄底 30）")]
+        public float tomePoorCd = 30f;
+
         [Header("日记（P6，用户 2026-10-25）")]
         [Tooltip("日记打字机速度：每字秒数（黄底 0.035；越大越慢）")]
         public float diaryCharSeconds = 0.035f;

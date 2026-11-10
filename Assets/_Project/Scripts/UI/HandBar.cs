@@ -25,7 +25,7 @@ namespace WordWars
         // F2 红铲（ADR-054）：手牌区左侧的独立功能钮（不占手牌位、不进塔字池）
         // 用户 2026-10-23：红铲移到左上角；原位置让给「临时格」（塔暂存）
         private const float ShovelX = -7.55f;
-        private const float ShovelTopY = 9.5f; // 相对手牌条（y=-4.55）→ 世界 y≈4.95（左上）
+        private const float ShovelTopY = 9.15f; // 相对手牌条（y=-4.55）→ 世界 y≈4.6（左上，按钮上沿 5.3 不出屏）
         private const float ShovelW = 2.0f;
         private const float ShovelH = 1.4f;
         private const float ShovelFontSize = 6.5f;
@@ -34,6 +34,7 @@ namespace WordWars
         private static readonly Color ShovelColor = HexUtil.ToColor("#6B4F35");    // 铲：褐
         private static readonly Color BlueInk = HexUtil.ToColor("#2B4C7E");
         private static readonly Color Vermilion = HexUtil.ToColor("#B83A2E");
+        private static readonly Color CardEdge = new Color(0.15f, 0.13f, 0.11f, 0.26f); // 卡面常态细边
 
         private TextMeshPro[] cardLabels;
         private SpriteRenderer[] cardBgs;
@@ -104,25 +105,27 @@ namespace WordWars
 
             // 抽（-1）：主字 + 底部价格（固定价，满手/缺墨变灰）
             var draw = MakeCard("DrawButton", CDrawX, CButtonSize, CButtonSize);
-            draw.label.fontSize = 11f;
-            draw.label.rectTransform.localPosition = new Vector3(0f, 0.16f, -0.15f);
-            draw.label.text = "抽";
+            // ⚠️ 卡底是 1.5 倍的局部缩放，标签挂在它下面会被同倍放大——旧版「抽」就是这样撑爆按钮的。
+            //    主字改挂手牌条根（等比），字号按世界单位给。
+            draw.label.gameObject.SetActive(false);
+            var drawLabel = MakeLabel(transform, "DrawLabel", new Vector3(CDrawX, 0.2f, -0.05f), 9f);
+            drawLabel.text = "抽";
             draw.click.Init(-1);
             drawBg = draw.bg;
-            drawCostLabel = MakeLabel(transform, "DrawCost", new Vector3(CDrawX, -0.5f, -0.05f), 4.5f);
+            drawCostLabel = MakeLabel(transform, "DrawCost", new Vector3(CDrawX, -0.52f, -0.05f), 3.2f);
             drawCostLabel.color = BlueInk;
             drawCostLabel.text = ""; // 价格由 Refresh 按一口价（池总价值）动态填
             DrawButtonWorldPos = draw.bg.transform.position;
 
             // 卖（-2）：手牌卡或拿起中的塔 → 回 2×字位
             var sell = MakeCard("SellButton", CSellX, CButtonSize, CButtonSize);
-            sell.label.fontSize = 11f;
-            sell.label.rectTransform.localPosition = new Vector3(0f, 0.16f, -0.15f);
-            sell.label.text = "卖";
+            sell.label.gameObject.SetActive(false);
+            var sellLabel = MakeLabel(transform, "SellLabel", new Vector3(CSellX, 0.2f, -0.05f), 9f);
+            sellLabel.text = "卖";
             sell.click.Init(-2);
             sellBg = sell.bg;
             sellBaseScale = sellBg.transform.localScale; // F2：常态 scale 存底（拿起放大）
-            var sellSub = MakeLabel(transform, "SellSub", new Vector3(CSellX, -0.5f, -0.05f), 4.5f);
+            var sellSub = MakeLabel(transform, "SellSub", new Vector3(CSellX, -0.52f, -0.05f), 3.2f);
             sellSub.color = BlueInk;
             sellSub.text = "半价卖出";
             SellButtonWorldPos = sell.bg.transform.position;
@@ -179,7 +182,8 @@ namespace WordWars
                 c.a = has ? 0.95f : 0.12f;
                 cardBgs[i].color = c;
 
-                cardFrames[i].enabled = has && i == selected;
+                cardFrames[i].enabled = has;
+                cardFrames[i].color = i == selected ? Vermilion : CardEdge;
             }
 
             if (drawCostLabel == null || hand == null) return;
@@ -259,15 +263,15 @@ namespace WordWars
             var col = go.GetComponent<BoxCollider2D>();
             col.size = Vector2.one * 1.02f;
 
-            // 朱框：略大、垫在卡底后面，选中时点亮
+            // 朱框：略大、垫在卡底后面——常态是淡墨细边（让手牌从棋盘里"立"起来），选中时点成朱色
             var frameGo = new GameObject("Frame", typeof(SpriteRenderer));
             frameGo.transform.SetParent(go.transform, false);
             frameGo.transform.localPosition = new Vector3(0f, 0f, 0.05f);
-            frameGo.transform.localScale = new Vector3(1.1f, 1.1f, 1f);
+            frameGo.transform.localScale = new Vector3(1.07f, 1.07f, 1f);
             var frame = frameGo.GetComponent<SpriteRenderer>();
             frame.sprite = whiteSprite;
-            frame.color = Vermilion;
-            frame.enabled = false;
+            frame.color = CardEdge;
+            frame.enabled = true;
 
             var parts = new CardParts
             {

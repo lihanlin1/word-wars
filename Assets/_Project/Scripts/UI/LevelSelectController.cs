@@ -14,10 +14,19 @@ namespace WordWars
         private static readonly Color Ink = HexUtil.ToColor("#26231F");
         private static readonly Color Vermilion = HexUtil.ToColor("#B83A2E");
         private static readonly Color BlueInk = HexUtil.ToColor("#2B4C7E");
+        private static readonly Color Gold = HexUtil.ToColor("#A67C1B");
         private static readonly Color Dim = new Color(0.62f, 0.60f, 0.56f, 0.9f);
         private static readonly Color LockedBg = new Color(0.80f, 0.77f, 0.70f, 0.7f);
+        // 程序化宝箱配色（没有美术素材时用）
+        private static readonly Color ChestOutline = new Color(0.12f, 0.10f, 0.08f, 0.55f);
+        private static readonly Color ChestLid = HexUtil.ToColor("#6B4F35");
+        private static readonly Color ChestBody = HexUtil.ToColor("#8A6A45");
+        private static readonly Color ChestLock = HexUtil.ToColor("#D9A43B");
 
         private SaveData save;
+        [SerializeField] private ShopConfig shopConfig; // 宝箱金额（BuildMenuScene 自动注入）
+        [Tooltip("宝箱图标（空 = 程序化画一个占位箱子）；有图直接拖进来即可替换")]
+        [SerializeField] private Sprite chestIcon;
         private bool hardMode;
         private int openChapter; // 0 = 章节列表；1-5 = 章节详情
         private Transform root;
@@ -46,6 +55,7 @@ namespace WordWars
         {
             Clear();
             ClearJumpConfirm();
+            root.localScale = Vector3.one * ScreenFit();
 
             Add(Label(root, "选 关", new Vector3(0f, 4.25f, -1.7f), 16f, Ink,
                 TextAlignmentOptions.Center, 8f).gameObject);
@@ -78,11 +88,18 @@ namespace WordWars
                     anyUnlocked ? Ink : Dim,
                     anyUnlocked ? (System.Action)(() => { openChapter = chapter; Rebuild(); }) : null,
                     out _, 7.5f, anyUnlocked ? (Color?)null : LockedBg));
+
+                // 章进度：按当前模式统计已通关关数（旧版卡片只有章号+关段，看不出打到哪了）
+                int cleared = 0;
+                for (int l = first; l <= last; l++) if (IsCleared(l)) cleared++;
+                Add(Label(root, "★ " + cleared + " / 5", new Vector3(x - 0.55f, -0.85f, -1.7f), 4.4f,
+                    cleared > 0 ? Gold : Dim, TextAlignmentOptions.Center, 3.2f).gameObject);
+
+                // 宝箱图标（用户 2026-11-07：从章节详情挪到列表，每个「★ N/5」旁边一个，按当前模式各算各的）
+                AddChest(c, x + 0.75f, -0.85f);
             }
 
-            Add(Label(root, hardMode ? "困难模式（敌人血量 ×2）" : "简单模式",
-                new Vector3(0f, -2.4f, -1.7f), 6f, hardMode ? Vermilion : BlueInk,
-                TextAlignmentOptions.Center, 12f).gameObject);
+            AddModeNotes();
         }
 
         // ============ 章节详情 ============
@@ -119,9 +136,20 @@ namespace WordWars
             Add(Button(root, "Continue", new Vector3(2.4f, -1.3f, -1.7f), new Vector2(3.6f, 1.1f),
                 "继续存档", Ink, () => StartLevel(SavedLevelIn(first, last), true), out _, 7.5f));
 
-            Add(Label(root, hardMode ? "困难模式" : "简单模式",
-                new Vector3(0f, -2.6f, -1.7f), 6f, hardMode ? Vermilion : BlueInk,
-                TextAlignmentOptions.Center, 8f).gameObject);
+            // 宝箱已挪到章节列表（用户 2026-11-07）：这里只保留「从头开始 / 继续存档」。
+            AddModeNotes();
+        }
+
+        /// <summary>
+        /// 底部两行「模式说明」（用户 2026-11-06 定稿）：当前模式高亮、另一条压淡。
+        /// 旧版是单个「简单模式」标签，和右上角那颗同名按钮重复，看不出两种难度到底差在哪。
+        /// </summary>
+        private void AddModeNotes()
+        {
+            Add(Label(root, "简单模式 · 新手友好，但会禁用天赋", new Vector3(0f, -2.55f, -1.7f), 4.8f,
+                hardMode ? Dim : BlueInk, TextAlignmentOptions.Center, 14f).gameObject);
+            Add(Label(root, "困难模式 · 敌人血量翻倍，但可以配置天赋", new Vector3(0f, -3.05f, -1.7f), 4.8f,
+                hardMode ? Vermilion : Dim, TextAlignmentOptions.Center, 14f).gameObject);
         }
 
         /// <summary>本模式存档进度（clamp 到本章范围）；无档 = 本章第一关。</summary>
@@ -149,6 +177,125 @@ namespace WordWars
             if (save == null) return false;
             var list = hardMode ? save.hardClearedLevels : save.easyClearedLevels;
             return list != null && list.Contains(idx);
+        }
+
+        // ============ 章节宝箱（用户 2026-11-07） ============
+
+        private string ChestKey(int ch) => ch + "_" + (hardMode ? 1 : 0);
+
+        private bool IsChestClaimed(int ch)
+        {
+            return save != null && save.claimedChests != null && save.claimedChests.Contains(ChestKey(ch));
+        }
+
+        /// <summary>该章·该模式已通关关数（星数）。</summary>
+        private int ChapterStars(int ch)
+        {
+            if (save == null) return 0;
+            var list = hardMode ? save.hardClearedLevels : save.easyClearedLevels;
+            if (list == null) return 0;
+            int first = (ch - 1) * 5 + 1, n = 0;
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] >= first && list[i] <= first + 4) n++;
+            return n;
+        }
+
+        private void ClaimChest(int ch, Vector3 iconPos)
+        {
+            if (save == null || ChapterStars(ch) < 5 || IsChestClaimed(ch)) return;
+            if (save.claimedChests == null) save.claimedChests = new System.Collections.Generic.List<string>();
+            save.claimedChests.Add(ChestKey(ch));
+            int amount = shopConfig != null ? Mathf.Max(0, shopConfig.chestGold) : 0;
+            save.gold += amount;
+            SaveSystem.Write(save);
+            SfxPlayer.Confirm();
+            SpawnGoldToast(iconPos, amount);
+            Rebuild();
+        }
+
+        /// <summary>
+        /// 章节宝箱图标（用户 2026-11-07）：有 chestIcon 就贴图，没有就程序化画一个
+        /// （轮廓 + 箱体 + 箱盖 + 金锁，四块白图拼的）。三种状态：
+        ///   可领 = 满色 + 金锁，可点；已领 = 开盖 + 极淡；未满 = 闭盖 + 淡。
+        /// 命中区 1.1×1.0（比图标大一圈，指尖友好）；不可领时不挂 collider。
+        /// </summary>
+        private void AddChest(int ch, float x, float y)
+        {
+            bool claimed = IsChestClaimed(ch);
+            bool ready = !claimed && ChapterStars(ch) >= 5;
+
+            var holder = new GameObject("Chest_" + ch);
+            holder.transform.SetParent(root, false);
+            holder.transform.localPosition = new Vector3(x, y, -1.8f);
+
+            float a = ready ? 1f : (claimed ? 0.20f : 0.38f);
+
+            if (chestIcon != null)
+            {
+                var go = new GameObject("Icon", typeof(SpriteRenderer));
+                go.transform.SetParent(holder.transform, false);
+                float s = 0.66f / Mathf.Max(0.01f, chestIcon.bounds.size.y);
+                go.transform.localScale = new Vector3(s, s, 1f);
+                var sr = go.GetComponent<SpriteRenderer>();
+                sr.sprite = chestIcon;
+                sr.color = new Color(1f, 1f, 1f, a);
+            }
+            else
+            {
+                // z：轮廓最后 → 箱体 → 箱盖 → 金锁最前（本工程 z 越小越靠相机）
+                ChestPart(holder.transform, 0f, 0.02f, 0.74f, 0.58f, 0.02f, Fade(ChestOutline, a));
+                ChestPart(holder.transform, 0f, -0.10f, 0.64f, 0.28f, 0f, Fade(ChestBody, a));
+                ChestPart(holder.transform, 0f, claimed ? 0.22f : 0.14f, 0.68f, 0.18f, -0.01f, Fade(ChestLid, a));
+                ChestPart(holder.transform, 0f, -0.02f, 0.13f, 0.15f, -0.02f, Fade(ChestLock, a));
+            }
+
+            Add(holder);
+
+            if (!ready) return;
+            var col = holder.AddComponent<BoxCollider2D>();
+            col.size = new Vector2(1.1f, 1.0f);
+            holder.AddComponent<PanelClicker>().Init(() => ClaimChest(ch, new Vector3(x, y, 0f)));
+        }
+
+        /// <summary>宝箱的一块（白图染色）。挂 holder 下，z 由调用方排。</summary>
+        private void ChestPart(Transform parent, float x, float y, float w, float h, float z, Color c)
+        {
+            var go = new GameObject("Part", typeof(SpriteRenderer));
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(x, y, z);
+            go.transform.localScale = new Vector3(w, h, 1f);
+            var sr = go.GetComponent<SpriteRenderer>();
+            sr.sprite = whiteSprite;
+            sr.color = c;
+        }
+
+        private static Color Fade(Color c, float a) { c.a *= a; return c; }
+
+        /// <summary>领奖反馈：+N 金币从箱子位置向上飘淡出（不挂 view，Rebuild 不会把它一起清掉）。</summary>
+        private void SpawnGoldToast(Vector3 iconPos, int amount)
+        {
+            if (amount <= 0) return;
+            var t = Label(root, "+" + amount + " 金币", new Vector3(iconPos.x, iconPos.y + 0.5f, -1.75f), 4.2f,
+                Gold, TextAlignmentOptions.Center, 3.6f);
+            StartCoroutine(ToastRoutine(t));
+        }
+
+        private System.Collections.IEnumerator ToastRoutine(TextMeshPro t)
+        {
+            Vector3 p0 = t.transform.localPosition;
+            Color c0 = t.color;
+            const float life = 1.1f;
+            for (float e = 0f; e < life; e += Time.deltaTime)
+            {
+                if (t == null) yield break;
+                float k = Mathf.Clamp01(e / life);
+                t.transform.localPosition = p0 + Vector3.up * (0.55f * k);
+                var c = c0;
+                c.a = 1f - k * k;
+                t.color = c;
+                yield return null;
+            }
+            if (t != null) Destroy(t.gameObject);
         }
 
         private void ToggleMode()

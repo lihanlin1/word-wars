@@ -297,7 +297,7 @@ namespace WordWars
             var sr = go.GetComponent<SpriteRenderer>();
             sr.sprite = _boardSprite;
             sr.drawMode = SpriteDrawMode.Tiled;
-            sr.size = new Vector2(22f, 12f); // 22×12 格（偶数），盖住 ±9.6/±5.4 可视区
+            sr.size = new Vector2(22f, 16f); // 22×16 格：16:9 盖 ±9.6/±5.4；窄屏相机放大后（见 FitCameraWidth）也不会露底
             backdrop = go.transform;
         }
 
@@ -355,7 +355,7 @@ namespace WordWars
             sheetGo.transform.SetParent(transform, false);
             sheet = sheetGo.transform;
             for (int x = -10; x <= 10; x++)
-                for (int y = -5; y <= 5; y++)
+                for (int y = -7; y <= 7; y++)   // ±7.5：窄屏相机放大后仍能盖满上下（原 ±5.5 会露一条干边）
                 {
                     var go = new GameObject("W" + x + "_" + y, typeof(SpriteRenderer));
                     go.transform.SetParent(sheet, false);

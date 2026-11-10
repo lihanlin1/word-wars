@@ -21,30 +21,10 @@ MonoBehaviour:
   floodSurge: {fileID: 8300000, guid: ca9d9eb6a8b0f744cad453f79cebf7c4, type: 3}
   floodEbb: {fileID: 8300000, guid: ca9d9eb6a8b0f744cad453f79cebf7c4, type: 3}
   lavaLand: {fileID: 8300000, guid: 40e8d06b3394d7a47be6be11ca0b88eb, type: 3}
-  nuoMaskChange: {fileID: 0}
-  nuoSmash: {fileID: 0}
-  nuoSeal: {fileID: 0}
   click: {fileID: 8300000, guid: 67d2b647f8b7cd04480227282788a307, type: 3}
-  clickInvalid: {fileID: 8300000, guid: 88c59efb4081aa64f8040e8ac2edc9ae, type: 3}
-  confirm: {fileID: 8300000, guid: e017b4b895ca9804c8c6e45ca2a888b4, type: 3}
+  clickInvalid: {fileID: 8300000, guid: 7a9b33578f0126c4cbd0d9c06594eeed, type: 3}
   menu: {fileID: 8300000, guid: 299405b06a739b949b56ae73c6a5b232, type: 3}
-  place: {fileID: 8300000, guid: de1b39af13bad3a47a4980a6c94f7fd0, type: 3}
-  pickup: {fileID: 8300000, guid: 1502d3e9e24f25e45908fa77b60e9069, type: 3}
-  sell: {fileID: 8300000, guid: 87f45d5150c508942a11d2ad1b348688, type: 3}
-  mergeLow: {fileID: 8300000, guid: dfc281f8edef8e0448980aa1c88025e4, type: 3}
-  mergeMid: {fileID: 8300000, guid: 25118c26fb5be9643b95e6ec7b32d273, type: 3}
-  mergeHigh: {fileID: 8300000, guid: ed945c80a8549cf46a3778f0baf5e660, type: 3}
-  mergeT6: {fileID: 8300000, guid: 072336de168cb2c4ab355c20da0adb9a, type: 3}
-  kill: {fileID: 0}
-  leak: {fileID: 0}
-  victory: {fileID: 0}
   defeat: {fileID: 8300000, guid: 88c59efb4081aa64f8040e8ac2edc9ae, type: 3}
-  draw: {fileID: 0}
-  inkPulse: {fileID: 0}
-  farmComplete: {fileID: 0}
-  redShovel: {fileID: 0}
-  faceSwitch: {fileID: 0}
-  nuoDance: {fileID: 0}
   volume: 0.8
   clickVolume: 0.45
-  bgmVolume: 0.4
+  bgmVolume: 0.5

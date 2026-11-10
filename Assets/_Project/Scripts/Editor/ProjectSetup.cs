@@ -30,6 +30,8 @@ namespace WordWars.EditorTools
         private const string GameParamsPath = SODir + "/GameParams.asset";
         private const string UIPanelConfigPath = SODir + "/UIPanelConfig.asset";
         private const string SoundConfigPath = SODir + "/SoundConfig.asset";
+        private const string ShopConfigPath = SODir + "/ShopConfig.asset";
+        private const string TalentConfigPath = SODir + "/TalentConfig.asset";
         private const string LevelDir = SODir + "/Levels";
         private const string ChapterDir = SODir + "/Chapters";
 
@@ -220,6 +222,8 @@ namespace WordWars.EditorTools
             var gameParamsRef = AssetDatabase.LoadAssetAtPath<GameParams>(GameParamsPath);
             var uiPanelConfigRef = AssetDatabase.LoadAssetAtPath<UIPanelConfig>(UIPanelConfigPath);
             var soundConfigRef = AssetDatabase.LoadAssetAtPath<SoundConfig>(SoundConfigPath);
+            var shopConfigRef = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
+            var talentConfigRef = AssetDatabase.LoadAssetAtPath<TalentConfig>(TalentConfigPath);
             var chapterRef = AssetDatabase.LoadAssetAtPath<ChapterConfig>(ChapterDir + "/Chapter1.asset");
             var levelRefs = new LevelConfig[]
             {
@@ -280,6 +284,10 @@ namespace WordWars.EditorTools
             so.FindProperty("gameParams").objectReferenceValue = gameParamsRef;
             so.FindProperty("panelConfig").objectReferenceValue = uiPanelConfigRef;
             so.FindProperty("soundConfig").objectReferenceValue = soundConfigRef;
+            var shopProp = so.FindProperty("shopConfig");
+            if (shopProp != null) shopProp.objectReferenceValue = shopConfigRef;
+            var talentProp = so.FindProperty("talentConfig");
+            if (talentProp != null) talentProp.objectReferenceValue = talentConfigRef;
             so.FindProperty("chapter").objectReferenceValue = chapterRef;
             var levelsProp = so.FindProperty("levels");
             levelsProp.arraySize = levelRefs.Length;
@@ -314,21 +322,28 @@ namespace WordWars.EditorTools
                 return;
             }
 
+            // 商店数据资产（用户 2026-11-04）：价格/天赋表，生成后 Inspector 可改
+            GetOrCreateShopConfig();
+            GetOrCreateTalentConfig();
+
             string menuPath = "Assets/_Project/Scenes/MainMenu.unity";
             string selectPath = "Assets/_Project/Scenes/LevelSelect.unity";
+            string shopPath = "Assets/_Project/Scenes/Shop.unity";
             BuildMenuScene(menuPath, typeof(MenuSceneController), font, white);
             BuildMenuScene(selectPath, typeof(LevelSelectController), font, white);
+            BuildMenuScene(shopPath, typeof(ShopController), font, white);
 
             EditorBuildSettings.scenes = new[]
             {
                 new EditorBuildSettingsScene(menuPath, true),
                 new EditorBuildSettingsScene(selectPath, true),
+                new EditorBuildSettingsScene(shopPath, true),
                 new EditorBuildSettingsScene(ScenePath, true),
             };
 
             // 回到 Game 场景（日常开发重心）
             if (File.Exists(ScenePath)) EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            Debug.Log("[Setup] 主界面/选关场景已生成，Build Settings：MainMenu(0) / LevelSelect(1) / Game(2)");
+            Debug.Log("[Setup] 主界面/选关/商店场景已生成，Build Settings：MainMenu(0) / LevelSelect(1) / Shop(2) / Game(3)");
         }
 
         /// <summary>
@@ -407,6 +422,13 @@ namespace WordWars.EditorTools
                     chs.GetArrayElementAtIndex(i).objectReferenceValue =
                         AssetDatabase.LoadAssetAtPath<ChapterConfig>(ChapterDir + "/Chapter" + (i + 1) + ".asset");
             }
+            // 商店场景（ShopController）
+            var sc = so.FindProperty("shopConfig");
+            if (sc != null) sc.objectReferenceValue = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
+            var tc = so.FindProperty("talentConfig");
+            if (tc != null) tc.objectReferenceValue = AssetDatabase.LoadAssetAtPath<TalentConfig>(TalentConfigPath);
+            var tp2 = so.FindProperty("towerPool");
+            if (tp2 != null) tp2.objectReferenceValue = AssetDatabase.LoadAssetAtPath<TowerPoolDef>(TowerPoolPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -535,6 +557,8 @@ namespace WordWars.EditorTools
             patched += PatchRef(so, "gameParams", AssetDatabase.LoadAssetAtPath<GameParams>(GameParamsPath));
             patched += PatchRef(so, "panelConfig", AssetDatabase.LoadAssetAtPath<UIPanelConfig>(UIPanelConfigPath));
             patched += PatchRef(so, "soundConfig", AssetDatabase.LoadAssetAtPath<SoundConfig>(SoundConfigPath));
+            patched += PatchRef(so, "shopConfig", AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath));
+            patched += PatchRef(so, "talentConfig", AssetDatabase.LoadAssetAtPath<TalentConfig>(TalentConfigPath));
             patched += PatchRef(so, "chapter", AssetDatabase.LoadAssetAtPath<ChapterConfig>(ChapterDir + "/Chapter1.asset"));
 
             // P3.2（docs/16 F3.2，用户 2026-10-25）：安全区容器自愈——Canvas 无 SafeAreaRoot 时
@@ -1669,6 +1693,44 @@ namespace WordWars.EditorTools
             // 字段初始值 = 当前面板实测布局（D2 定稿）；生成后用户 Inspector 直调（ADR-024）
             var def = ScriptableObject.CreateInstance<UIPanelConfig>();
             return SaveAndReload(def, UIPanelConfigPath);
+        }
+
+        /// <summary>商店价格资产（用户 2026-11-04）：缺省 0 = 免费，价格由用户在 Inspector 填。</summary>
+        private static ShopConfig GetOrCreateShopConfig()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<ShopConfig>(ShopConfigPath);
+            if (existing != null) return existing;
+            if (File.Exists(ShopConfigPath)) DeleteBrokenAsset(ShopConfigPath);
+            var def = ScriptableObject.CreateInstance<ShopConfig>();
+            return SaveAndReload(def, ShopConfigPath);
+        }
+
+        /// <summary>天赋表资产（7 个）：名称/描述可改，id 固定（代码判定用）。</summary>
+        private static TalentConfig GetOrCreateTalentConfig()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<TalentConfig>(TalentConfigPath);
+            if (existing != null) return existing;
+            if (File.Exists(TalentConfigPath)) DeleteBrokenAsset(TalentConfigPath);
+
+            var def = ScriptableObject.CreateInstance<TalentConfig>();
+            def.talents = new List<TalentDef>
+            {
+                new TalentDef { id = TalentIds.Nuke, name = "六个核弹", price = 0,
+                    desc = "每章 6 发：全图敌人 −10000 血（含 Boss）。跨 5 关共享，章界重置。" },
+                new TalentDef { id = TalentIds.Family, name = "家族企业", price = 0,
+                    desc = "家变成墨塔：初始 1 阶，每过一关自动 +1 阶（章内最高 5 阶），每章重置。" },
+                new TalentDef { id = TalentIds.Prodigy, name = "天赋异禀", price = 0,
+                    desc = "合并塔时 33% 概率额外 +1 阶（最高 6 阶；升阶秘籍不触发）。" },
+                new TalentDef { id = TalentIds.Upgrade, name = "升阶秘籍", price = 0,
+                    desc = "关内多一个按钮：点一塔使其 +1 阶。冷却 60 秒。" },
+                new TalentDef { id = TalentIds.UpgradePoor, name = "升阶秘籍（劣）", price = 0,
+                    desc = "关内按钮：50% +1 阶 / 50% −1 阶（1 阶不降）。冷却 30 秒。" },
+                new TalentDef { id = TalentIds.TimeStop, name = "咋瓦鲁多", price = 0,
+                    desc = "关内一次：全图敌人静止 5 秒，塔照常攻击、玩家可操作。" },
+                new TalentDef { id = TalentIds.Interest, name = "利滚利", price = 0,
+                    desc = "每波开始：获得利息 = 当前墨 ÷ 10（向下取整）。" },
+            };
+            return SaveAndReload(def, TalentConfigPath);
         }
 
         private static SoundConfig GetOrCreateSoundConfig()

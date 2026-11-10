@@ -34,15 +34,15 @@ namespace WordWars
         }
 
         // 步骤序 = 用户口径（抽→卖→放→合→移），末步教「下一波」开战。
-        // 文案单行 ≤10 字（7 号 ×0.1 ≈ 7.0 单位，排版框 7.4 兜住）
+        // 文案单行 ≤11 字（7 号 ×0.1 ≈ 7.7，排版框 8.4 兜住；2026-11-06 统一到「点…再点…」句式）
         private static readonly Step[] Steps =
         {
             new Step { evt = TutorialEvent.Draw,  text = "点「抽」获得手牌" },
-            new Step { evt = TutorialEvent.Sell,  text = "选手牌，点「卖」进行售卖" },
-            new Step { evt = TutorialEvent.Place, text = "选手牌，点地图塔防格放置" },
-            new Step { evt = TutorialEvent.Merge, text = "两个相同塔防可以进行合成" },
-            new Step { evt = TutorialEvent.Move,  text = "点塔拿起，点地图塔防格移动" },
-            new Step { evt = TutorialEvent.Wave,  text = "点右下角「下一波」迎敌！" },
+            new Step { evt = TutorialEvent.Sell,  text = "点手牌选中，再点「卖」" },
+            new Step { evt = TutorialEvent.Place, text = "点手牌，再点塔防格放置" },
+            new Step { evt = TutorialEvent.Merge, text = "两个相同塔防可以合成" },
+            new Step { evt = TutorialEvent.Move,  text = "点塔拿起，再点格子移动" },
+            new Step { evt = TutorialEvent.Wave,  text = "点右下「下一波」迎敌" },
         };
 
         private readonly bool[] done = new bool[Steps.Length];
@@ -61,7 +61,7 @@ namespace WordWars
             var bgGo = new GameObject("BubbleBg", typeof(SpriteRenderer));
             bgGo.transform.SetParent(transform, false);
             bgGo.transform.localPosition = Vector3.zero;
-            bgGo.transform.localScale = new Vector3(7.6f, 1.0f, 1f);
+            bgGo.transform.localScale = new Vector3(8.8f, 1.05f, 1f);
             bg = bgGo.GetComponent<SpriteRenderer>();
             bg.sprite = white;
             var paper = HexUtil.ToColor("#F7F2E7"); // 宣纸（同格子虚框内衬）
@@ -76,8 +76,11 @@ namespace WordWars
             label.fontSize = 7;
             label.alignment = TextAlignmentOptions.Center;
             label.color = HexUtil.ToColor("#26231F"); // 浓墨
+            // 单行硬约束（2026-11-06）：原来没关换行，12 字的「选手牌，点「卖」进行售卖」
+            // 被挤成两行、溢出纸底——文案超宽就整句缩短，绝不让气泡折行。
+            label.enableWordWrapping = false;
             var rt = (RectTransform)labelGo.transform;
-            rt.sizeDelta = new Vector2(7.4f, 0.9f);
+            rt.sizeDelta = new Vector2(8.4f, 0.9f);
 
             gameObject.SetActive(false); // 骨架建好才许隐藏（TMP Awake 只在激活时跑，W1）
         }

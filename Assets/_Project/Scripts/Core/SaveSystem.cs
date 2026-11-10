@@ -83,6 +83,14 @@ namespace WordWars
         public int redShovelBought;
         // 家（用户 2026-10-23）：章内跨关累积、章界清零（升级次数 0-5；旧档缺字段 = 0 零迁移）
         public int homeLevel;
+
+        // —— v4（用户 2026-11-04，ADR-086）：本章天赋配置 ——
+        /// <summary>已锁定天赋配置的章 id（0 = 未配置；本章 5 关内不可改）。</summary>
+        public int talentChapter;
+        /// <summary>本章生效的天赋 id（进困难新章时从已购天赋里选 ≤ 槽位个）。</summary>
+        public List<string> chapterTalents = new List<string>();
+        /// <summary>本章剩余核弹发数（-1 = 未初始化；配置天赋时设为 nukePerChapter）。</summary>
+        public int nukeLeft = -1;
     }
 
     [Serializable]
@@ -96,7 +104,7 @@ namespace WordWars
     [Serializable]
     public class SaveData
     {
-        public int saveVersion = 3;
+        public int saveVersion = 4;
         public string lastSavedUtc = "";
         public int maxLevelUnlocked = 1;
         public BackpackData backpack = new BackpackData();
@@ -121,6 +129,16 @@ namespace WordWars
         /// <summary>上次选择的模式（0=简单 1=困难；主界面/选关记住，缺省简单）。</summary>
         public int lastMode;
 
+        // —— v4（用户 2026-11-04，ADR-084）：局外金币 + 天赋 ——
+        /// <summary>局外金币（跨关/跨章/跨模式；结算获得）。</summary>
+        public int gold;
+        /// <summary>已购买的天赋 id（永久解锁，可反复选配）。</summary>
+        public List<string> talents = new List<string>();
+        /// <summary>已领取的章节宝箱（key = "章_模式"，如 "1_0" = 第1章简单；用户 2026-11-07）。</summary>
+        public List<string> claimedChests = new List<string>();
+        /// <summary>天赋槽位（默认 1；商店可买 +1，上限 7）。</summary>
+        public int talentSlots = 1;
+
         /// <summary>按模式取进度状态（hard=true 取困难）。</summary>
         public ChapterStateData StateFor(bool hard) => hard ? hardChapterState : chapterState;
 
@@ -140,23 +158,95 @@ namespace WordWars
         // 封顶 120、永久继承（存档）。当前版本无成本升级（正式版预定看广告——原型期零 SDK）。
         public const int InkCapBase = 60;
         public const int InkCapStep = 10;
-        public const int InkCapMaxSteps = 6;
+        public const int InkCapMaxSteps = 14; // v4（用户 2026-11-04）：上限 120 → 200（+10/步，共 14 步）
 
-        /// <summary>初始墨 = 60 + 10 × 步数（0-6 → 60-120）。实机与 headless 唯一同源口径。</summary>
+        /// <summary>初始墨 = 60 + 10 × 步数（0-14 → 60-200）。实机与 headless 唯一同源口径。</summary>
         public static int InitialInk(int steps) =>
             InkCapBase + InkCapStep * Mathf.Clamp(steps, 0, InkCapMaxSteps);
 
-        private static string Path =>
+        // ============ 三存档槽（用户 2026-11-05） ============
+        // 文件：save_slot1..3.json；active_slot.txt 记住上次使用的槽（默认 1）。
+        // 旧单档 save_v2.json 首次运行自动迁移到槽 1（老玩家进度不丢；换版本 persistentDataPath 不变）。
+        public const int SlotCount = 3;
+        public static int Slot { get; private set; } = 1;
+        private static bool slotsReady;
+
+        private static string SlotPath(int slot) =>
+            System.IO.Path.Combine(Application.persistentDataPath, "save_slot" + slot + ".json");
+        private static string LegacyPath =>
             System.IO.Path.Combine(Application.persistentDataPath, "save_v2.json");
+        private static string ActiveSlotPath =>
+            System.IO.Path.Combine(Application.persistentDataPath, "active_slot.txt");
+
+        private static string Path => SlotPath(Slot);
+
+        /// <summary>初始化槽位（幂等）：读上次槽 + 旧档迁移。</summary>
+        public static void InitSlots()
+        {
+            if (slotsReady) return;
+            slotsReady = true;
+            try
+            {
+                if (File.Exists(ActiveSlotPath) &&
+                    int.TryParse(File.ReadAllText(ActiveSlotPath).Trim(), out int n))
+                    Slot = Mathf.Clamp(n, 1, SlotCount);
+                if (File.Exists(LegacyPath) && !File.Exists(SlotPath(1)))
+                {
+                    File.Copy(LegacyPath, SlotPath(1));
+                    Debug.Log("[SaveSystem] 旧存档已迁移到槽 1");
+                }
+            }
+            catch (Exception e) { Debug.LogWarning("[SaveSystem] 槽位初始化失败：" + e.Message); }
+        }
+
+        /// <summary>切换当前槽（并记住）。</summary>
+        public static void UseSlot(int slot)
+        {
+            InitSlots();
+            Slot = Mathf.Clamp(slot, 1, SlotCount);
+            try { File.WriteAllText(ActiveSlotPath, Slot.ToString()); } catch { }
+            Debug.Log("[SaveSystem] 当前存档槽 = " + Slot);
+        }
+
+        public static bool HasSlot(int slot) => File.Exists(SlotPath(Mathf.Clamp(slot, 1, SlotCount)));
+
+        /// <summary>删除单个槽。</summary>
+        public static void DeleteSlot(int slot)
+        {
+            InitSlots();
+            try
+            {
+                string pth = SlotPath(Mathf.Clamp(slot, 1, SlotCount));
+                if (File.Exists(pth)) File.Delete(pth);
+            }
+            catch (Exception e) { Debug.LogWarning("[SaveSystem] 删槽失败：" + e.Message); }
+        }
+
+        /// <summary>某槽 / 某模式的通关星数（= 已通关关数）。</summary>
+        public static int ClearedCount(int slot, bool hard)
+        {
+            InitSlots();
+            SaveData d = null;
+            try
+            {
+                string pth = SlotPath(Mathf.Clamp(slot, 1, SlotCount));
+                if (File.Exists(pth)) d = JsonUtility.FromJson<SaveData>(File.ReadAllText(pth));
+            }
+            catch { }
+            if (d == null) return 0;
+            var list = hard ? d.hardClearedLevels : d.easyClearedLevels;
+            return list != null ? list.Count : 0;
+        }
 
         /// <summary>读档：无档/坏档/版本不符 → null（走新档流程）。v2 自动迁移到 v3。</summary>
         public static SaveData Load()
         {
             try
             {
+                InitSlots();
                 if (!File.Exists(Path)) return null;
                 var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(Path));
-                if (data == null || (data.saveVersion != 2 && data.saveVersion != 3))
+                if (data == null || (data.saveVersion != 2 && data.saveVersion != 3 && data.saveVersion != 4))
                 {
                     Debug.LogWarning("[SaveSystem] 存档版本不符或为空，按新档处理：" + Path);
                     return null;
@@ -167,6 +257,15 @@ namespace WordWars
                     data.saveVersion = 3;
                     Debug.Log("[SaveSystem] 存档 v2 → v3 迁移（困难进度/6 阶解锁初始化）");
                 }
+                // v3 → v4 迁移（用户 2026-11-04）：补金币/天赋库/天赋槽，版本升 4；旧字段全保留。
+                if (data.saveVersion < 4)
+                {
+                    data.saveVersion = 4;
+                    if (data.talents == null) data.talents = new List<string>();
+                if (data.claimedChests == null) data.claimedChests = new List<string>();
+                    if (data.talentSlots < 1) data.talentSlots = 1;
+                    Debug.Log("[SaveSystem] 存档 v3 → v4 迁移（金币/天赋库/天赋槽初始化）");
+                }
                 if (data.chapterState == null) data.chapterState = new ChapterStateData();
                 if (data.hardChapterState == null) data.hardChapterState = new ChapterStateData();
                 if (data.tier6Unlocked == null) data.tier6Unlocked = new List<string>();
@@ -174,6 +273,9 @@ namespace WordWars
                 if (data.easyClearedLevels == null) data.easyClearedLevels = new List<int>();
                 if (data.backpack == null) data.backpack = new BackpackData();
                 if (data.playerMeta == null) data.playerMeta = new PlayerMetaData();
+                if (data.talents == null) data.talents = new List<string>();
+                if (data.claimedChests == null) data.claimedChests = new List<string>();
+                if (data.talentSlots < 1) data.talentSlots = 1;
                 return data;
             }
             catch (Exception e)

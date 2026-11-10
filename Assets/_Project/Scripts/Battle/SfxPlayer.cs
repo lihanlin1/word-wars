@@ -250,6 +250,8 @@ namespace WordWars
         public void PlayRedShovel() { if (cfg == null) return; Play(cfg.redShovel); }
         public void PlayFaceSwitch() { if (cfg == null) return; Play(cfg.faceSwitch); }
         public void PlayNuoDance() { if (cfg == null) return; Play(cfg.nuoDance); }
+        public void PlayNuke() { if (cfg == null) return; Play(cfg.nuke); }
+        public void PlayTimeStop() { if (cfg == null) return; Play(cfg.timeStop); }
 
         private void OnDestroy()
         {
