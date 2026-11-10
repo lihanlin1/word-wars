@@ -427,6 +427,7 @@ namespace WordWars
             // 存档 v3：有档续玩（背包/构筑/快照回场），无档新开
             backpack = new BackpackSystem();
             save = SaveSystem.Load();
+            backpack.AddCard("刀"); // 起手卡（用户 2026-11-10）：进不进新手关都先有刀
             // 用户 2026-10-26：音效开关消费点（settings.sfxOn；BGM 由 bgmOn 独立管）
             sfx?.SetSfxEnabled(save == null || save.settings == null || save.settings.sfxOn);
             if (save != null) backpack.LoadFrom(save);
@@ -2842,12 +2843,15 @@ namespace WordWars
                 firstClear = cleared == null || !cleared.Contains(levelIndex);
             }
             var rewardCards = level != null ? level.rewardCards : null;
-            // P5（用户 2026-10-26）+ ADR-087：胜利帧只记下奖励，点「下一关」后逐张展示。
-            // 困难模式：本关奖励卡在进关时**已拥有**（普通模式拿过）→ 不弹「获得」。
-            bool hardHasNew = !hardMode || entryAddedRewards.Count > 0;
-            if (clearPanel != null && firstClear && hardHasNew && rewardCards != null && rewardCards.Count > 0)
+            // 通关即发本关奖励卡（用户 2026-11-10：发与展示同刻，修复「先能用、后恭喜」）；
+            // 只把**真正新增**的卡放进结算队列——已拥有（重打 / 普通模式拿过）则不弹。
+            var newRewards = new List<string>();
+            if (rewardCards != null)
+                foreach (var card in rewardCards)
+                    if (backpack.AddCard(card)) newRewards.Add(card);
+            if (clearPanel != null && firstClear && newRewards.Count > 0)
             {
-                pendingRewardCards = new List<string>(rewardCards);
+                pendingRewardCards = newRewards;
                 pendingRewardLevel = levelIndex;
             }
             hud?.ShowBanner(bannerMsg);
@@ -5013,11 +5017,12 @@ namespace WordWars
             // entryAddedRewards = 本次进关**新增**的卡（本关自身 rewardCards 里新入包的）——
             // 困难模式「已拥有则不弹获得界面」靠它判断。
             entryAddedRewards.Clear();
-            for (int i = 0; i <= index; i++)
+            // 只补「已过关」的奖励（幂等，兼容旧档）；本关奖励改为**通关时**才发（用户 2026-11-10）——
+            // 这样「获得某某」与「可用了」严格同步，不再出现「已经能用铲、结算才恭喜获得铲」。
+            for (int i = 0; i < index; i++)
                 if (levels[i] != null && levels[i].rewardCards != null)
-                    foreach (var card in levels[i].rewardCards)
-                        if (backpack.AddCard(card) && i == index)
-                            entryAddedRewards.Add(card);
+                    foreach (var card in levels[i].rewardCards) backpack.AddCard(card);
+
 
             // P5（用户 2026-10-26）：通关奖励卡改在「点下一关之后」逐张展示（每张卡一屏），
             // 不再在胜利帧弹出（避免压住左下「回滚」按钮与结果按钮）。

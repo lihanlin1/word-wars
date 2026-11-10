@@ -24,7 +24,6 @@ MonoBehaviour:
   poolChars:
   - "\u5200"
   rewardCards:
-  - "\u5200"
   - "\u77DB"
   - "\u5F13"
   waves:
