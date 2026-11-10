@@ -12,12 +12,27 @@ namespace WordWars.EditorTools
     /// </summary>
     public static class WebGLBuilder
     {
-        private static readonly string[] Scenes =
+        // 兜底：Build Settings 为空时才用这份写死的清单。
+        // 2026-11-10：原来这里只有 MainMenu/LevelSelect/Game，漏了商店场景——网页版点「商店」进不去。
+        // 改为优先读 Build Settings 里 enabled 的场景，以后加场景不用再改代码。
+        private static readonly string[] FallbackScenes =
         {
             "Assets/_Project/Scenes/MainMenu.unity",
             "Assets/_Project/Scenes/LevelSelect.unity",
+            "Assets/_Project/Scenes/Shop.unity",
             "Assets/_Project/Scenes/Game.unity",
         };
+
+        private static string[] EnabledScenes()
+        {
+            var list = new System.Collections.Generic.List<string>();
+            var settings = EditorBuildSettings.scenes;
+            if (settings != null)
+                foreach (var s in settings)
+                    if (s != null && s.enabled && !string.IsNullOrEmpty(s.path))
+                        list.Add(s.path);
+            return list.Count > 0 ? list.ToArray() : FallbackScenes;
+        }
 
         [MenuItem("Word Wars/Build/WebGL Demo")]
         public static void Build()
@@ -40,7 +55,7 @@ namespace WordWars.EditorTools
 
             var options = new BuildPlayerOptions
             {
-                scenes = Scenes,
+                scenes = EnabledScenes(),
                 locationPathName = output,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None,

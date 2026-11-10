@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37891f1b2d6a7df40ac46fd930f6520e, type: 3}
   m_Name: ShopConfig
   m_EditorClassIdentifier: 
-  inkStepPrice: 0
-  inkStepPriceGrowth: 0
-  slotPrice: 0
-  slotPriceGrowth: 0
-  tier6Price: 0
-  chestGold: 0
+  inkStepPrice: 50
+  inkStepPriceGrowth: 50
+  slotPrice: 1000
+  slotPriceGrowth: 1000
+  tier6Price: 100
+  chestGold: 2000
   newTowerEnabled: 0

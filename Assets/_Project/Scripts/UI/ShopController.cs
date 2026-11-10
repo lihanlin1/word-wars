@@ -412,30 +412,53 @@ namespace WordWars
 
                 float nameX = x;
                 TextAlignmentOptions nameAlign = TextAlignmentOptions.Center;
+                float nameW = 3.4f;
+                float nameSize = 4.4f;
+
                 if (def.icon != null)
                 {
-                    float s = 0.72f / Mathf.Max(0.01f, def.icon.bounds.size.x);
+                    // 图标：先铺一块米色底托，白色占位图才不像"贴纸"一样浮在角上；
+                    // 尺寸收到 0.6（原来是 0.72，会顶到卡片上沿）。
+                    const float iconCx = -1.53f;   // 相对卡片中心
+                    const float iconCy = 0.90f;
+                    var plate = new GameObject("IconPlate", typeof(SpriteRenderer));
+                    plate.transform.SetParent(t, false);
+                    plate.transform.localPosition = new Vector3(x + iconCx, y + iconCy, -2.12f);
+                    plate.transform.localScale = new Vector3(0.70f, 0.70f, 1f);
+                    var psr = plate.GetComponent<SpriteRenderer>();
+                    psr.sprite = whiteSprite;
+                    psr.color = new Color(0.88f, 0.84f, 0.75f, 1f);
+
+                    float s = 0.60f / Mathf.Max(0.01f, def.icon.bounds.size.x);
                     var iconGo = new GameObject("Icon", typeof(SpriteRenderer));
                     iconGo.transform.SetParent(t, false);
-                    iconGo.transform.localPosition = new Vector3(x - 1.45f, y + 0.92f, -2.15f);
+                    iconGo.transform.localPosition = new Vector3(x + iconCx, y + iconCy, -2.15f);
                     iconGo.transform.localScale = new Vector3(s, s, 1f);
                     var isr = iconGo.GetComponent<SpriteRenderer>();
                     isr.sprite = def.icon;
                     isr.color = Color.white;
-                    nameX = x - 0.72f;
+
+                    // 名字让到图标右边：左起 -1.10，字号 4.0（"升阶秘籍（劣）"7 字也不会顶出卡外）
+                    nameX = x - 1.10f;
                     nameAlign = TextAlignmentOptions.Left;
+                    nameW = 2.85f;
+                    nameSize = 4.0f;
                 }
 
-                LabelAligned(t, def.name, new Vector3(nameX, y + 0.92f, -2.2f), 4.8f,
-                    has ? Fade : Vermilion, nameAlign, 3.4f);
+                LabelAligned(t, def.name, new Vector3(nameX, y + 0.90f, -2.2f), nameSize,
+                    has ? Fade : Vermilion, nameAlign, nameW);
 
-                var d = LabelAligned(t, def.desc, new Vector3(x - 1.70f, y + 0.08f, -2.2f), 3f, Fade,
-                    TextAlignmentOptions.TopLeft, 3.40f);
+                // 描述：Top 对齐时文字顶边 = 位置 + 半高，所以位置要按"期望顶边 - 半高"倒推
+                // （期望顶边 y+0.42、框高 1.15 → y-0.155）。字号 2.55：最长的天赋描述 4 行也装得下。
+                var d = LabelAligned(t, def.desc, new Vector3(x - 1.62f, y - 0.155f, -2.2f), 2.55f, Fade,
+                    TextAlignmentOptions.TopLeft, 3.30f);
                 d.enableWordWrapping = true;
-                d.rectTransform.sizeDelta = new Vector2(3.40f, 1.20f);
+                d.lineSpacing = 4f;
+                d.rectTransform.sizeDelta = new Vector2(3.30f, 1.15f);
 
-                LabelAligned(t, has ? "已购买" : PriceLabel(def.price), new Vector3(x, y - 0.92f, -2.2f), 4f,
-                    has ? Fade : Gold, TextAlignmentOptions.Center, 3.5f);
+                // 状态挪到右下角，不再和描述抢中间那行
+                LabelAligned(t, has ? "已购买" : PriceLabel(def.price), new Vector3(x + 1.72f, y - 1.02f, -2.2f),
+                    3.2f, has ? Fade : Gold, TextAlignmentOptions.Right, 1.7f);
             }
         }
 
