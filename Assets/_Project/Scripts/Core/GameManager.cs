@@ -1591,7 +1591,11 @@ namespace WordWars
                 (Vector3)homePos + Vector3.up * 0.9f, BlueInk);
         }
 
-        /// <summary>本章已通关的关数（按当前模式；用于家族企业的家自动升阶）。</summary>
+        /// <summary>
+        /// 本章已通关的关数（按当前模式）。
+        /// 2026-11-10：家族企业的家改为「按本关在章内位置」定阶后，这里不再被引用；
+        /// 保留是因为选关/统计侧可能还要用，且逻辑本身无误。
+        /// </summary>
         private int CountClearedInChapter(int chapterId, bool hard)
         {
             if (save == null) return 0;
@@ -5308,10 +5312,14 @@ namespace WordWars
             redShovelBought = (field != null && !resumingSave)
                 ? field.redShovelBought
                 : (save != null && CurrentChapterState != null ? CurrentChapterState.redShovelBought : 0);
-            // 家（用户 2026-11-04，ADR-087）：并入「家族企业」天赋——无天赋 = 无家；
-            // 有天赋 = 1 阶起，每通关本章一关自动 +1（章内最高 5），每章重置（按本章通关数重算）。
+            // 家（用户 2026-11-04，ADR-087；2026-11-10 修正）：并入「家族企业」天赋——无天赋 = 无家；
+            // 有天赋 = 按「本关在章内的第几关」定阶：L1 = 1 阶，每过一关 +1（章内最高 5），每章重置。
+            // 旧写法是「1 + 本章已通关数」——重打已通关的章节时 L1 会直接算成 5 阶（存档里记着历史通关），
+            // 与「第一关是 1 阶」的设计不符；改成按关卡位置算，重打、回滚、换关都稳定。
+            int homeChapter = ChapterIdOf(level);
+            int homeFirst = (Mathf.Max(1, homeChapter) - 1) * 5 + 1;
             homeLevel = IsTalentActive(TalentIds.Family)
-                ? Mathf.Clamp(1 + CountClearedInChapter(ChapterIdOf(level), hardMode), 1,
+                ? Mathf.Clamp(1 + (levelIndex - homeFirst), 1,
                     gameParams != null ? gameParams.homeMaxLevel : 5)
                 : 0;
             if (save != null && CurrentChapterState != null) CurrentChapterState.homeLevel = homeLevel;
