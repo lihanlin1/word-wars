@@ -34,8 +34,6 @@ MonoBehaviour:
   - "\u6E14"
   - "\u51B0"
   - "\u706F"
-  rewardCards:
-  - "\u706F"
   waves:
   - groups:
     - charId: "\u9F20"

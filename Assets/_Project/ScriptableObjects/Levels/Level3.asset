@@ -28,7 +28,8 @@ MonoBehaviour:
   - "\u58A8"
   - "\u94F2"
   rewardCards:
-  - "\u94F2"
+  - "\u68CD"
+  - "\u621F"
   waves:
   - groups:
     - charId: "\u9E1F"

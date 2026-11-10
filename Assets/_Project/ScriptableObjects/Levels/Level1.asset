@@ -26,9 +26,7 @@ MonoBehaviour:
   - "\u77DB"
   - "\u5F13"
   rewardCards:
-  - "\u5200"
-  - "\u77DB"
-  - "\u5F13"
+  - "\u58A8"
   waves:
   - groups:
     - charId: "\u866B"
